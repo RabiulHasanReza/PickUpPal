@@ -1,40 +1,61 @@
-import { useState, useEffect } from 'react'; 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
-  
-  useEffect(() => {
-    const theme = localStorage.getItem('theme');
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, []);
-  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
-  const handleLogin = (e) => {
-    e.preventDefault();
-    
-    const existingUsers = JSON.parse(localStorage.getItem('users')) || [];
-    const user = existingUsers.find(
-      (u) => u.email === email && u.password === password
-    );
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-    if (user) {
-      localStorage.setItem('loggedInUser', JSON.stringify(user));
-      if(user.role=='rider' || user.role==null)
-        window.location.href = '/dashboard';
-      else if(user.role=='driver')
-        window.location.href = '/driverdashboard';
-      else if(user.role=='admin')
-        window.location.href = '/driverdashboard';
-    } else {
-      alert('Invalid email or password');
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Try rider login first
+      const riderResponse = await fetch('http://localhost:3000/login/rider', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (riderResponse.ok) {
+        const userData = await riderResponse.json();
+        localStorage.setItem('loggedInUser', JSON.stringify(userData));
+        navigate('/dashboard');
+        return;
+      }
+
+      // If not a rider, try driver login
+      const driverResponse = await fetch('http://localhost:3000/login/driver', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (driverResponse.ok) {
+        const userData = await driverResponse.json();
+        localStorage.setItem('loggedInUser', JSON.stringify(userData));
+        navigate('/driverdashboard');
+        return;
+      }
+
+      // If neither worked
+      setError('Invalid email or password');
+    } catch (err) {
+      setError('Failed to connect to server');
+      console.error('Login error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -51,6 +72,11 @@ const LoginPage = () => {
           <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-center text-gray-800 dark:text-white mb-6">
             Log in to PickUpPal
           </h2>
+          {error && (
+            <div className="mb-4 p-2 bg-red-100 text-red-700 rounded text-sm">
+              {error}
+            </div>
+          )}
           <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5 md:space-y-6">
             <div>
               <label className="block mb-1 text-sm sm:text-base md:text-lg text-gray-700 dark:text-gray-300">
@@ -80,26 +106,27 @@ const LoginPage = () => {
             </div>
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm sm:text-base md:text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+              disabled={isLoading}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm sm:text-base md:text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-70"
             >
-              Log In
+              {isLoading ? 'Logging in...' : 'Log In'}
             </button>
           </form>
           
-          {/* Additional responsive links */}
           <div className="mt-4 sm:mt-6 text-center">
             <a href="/forgot-password" className="text-sm sm:text-base text-blue-600 dark:text-blue-400 hover:underline">
               Forgot password?
             </a>
             <p className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">
               Don't have an account?{' '}
-              <a href="/signup?role=rider" className="text-blue-600 dark:text-blue-400 hover:underline">
+              <a href="/signup" className="text-blue-600 dark:text-blue-400 hover:underline">
                 Sign up
               </a>
             </p>
           </div>
         </motion.div>
       </div>
+      <Footer />
     </>
   );
 };
