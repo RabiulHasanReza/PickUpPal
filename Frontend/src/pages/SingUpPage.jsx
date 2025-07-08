@@ -51,11 +51,11 @@ const SignUpPage = () => {
     setError('');
 
     try {
-      let endpoint = '/signup/rider';
+      let endpoint = '/api/signup/rider';
       let body = { name, email, phone, password };
 
       if (role === 'driver') {
-        endpoint = '/signup/driver';
+        endpoint = '/api/signup/driver';
         // Add required driver fields
         body = {
           ...body,

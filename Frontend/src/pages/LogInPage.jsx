@@ -18,7 +18,7 @@ const LoginPage = () => {
 
     try {
       // Try rider login first
-      const riderResponse = await fetch('http://localhost:3000/login/rider', {
+      const riderResponse = await fetch('http://localhost:3000/api/login/rider', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -34,7 +34,7 @@ const LoginPage = () => {
       }
 
       // If not a rider, try driver login
-      const driverResponse = await fetch('http://localhost:3000/login/driver', {
+      const driverResponse = await fetch('http://localhost:3000/api/login/driver', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
