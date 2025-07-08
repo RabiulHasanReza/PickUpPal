@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import './Home.css';
 import Footer from '../components/Footer';
 import { FaSearchLocation, FaMapMarkerAlt, FaArrowDown } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
 const paragraphLines = [
   "PickUpPal is your go-to ride-sharing partner,",
@@ -14,7 +15,9 @@ const paragraphLines = [
   "PickUpPal ensures every ride feels like a journey with a friend."
 ];
 
+
 const Home = () => {
+  const navigate = useNavigate();
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('theme');
     return saved === 'dark';
@@ -35,9 +38,12 @@ const Home = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
+    alert("you don't have an account")
     console.log('Searching ride from:', source, 'to:', destination);
+    navigate('/login')
   };
-
+  
+ 
   return (
     <>
       <Header />

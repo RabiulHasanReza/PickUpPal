@@ -67,6 +67,7 @@ const DashboardPage = () => {
       document.documentElement.classList.remove('dark');
     }
   };
+  // ... (previous imports remain the same)
 
   const handleBookRide = async () => {
     if (!pickupLocation || !destination) {
@@ -75,7 +76,19 @@ const DashboardPage = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:3000/ride_req', {
+      // First get distance and duration
+      const distanceResponse = await fetch(
+        `http://localhost:3000/api/map/distance?origin=${encodeURIComponent(pickupLocation)}&destination=${encodeURIComponent(destination)}`
+      );
+
+      if (!distanceResponse.ok) {
+        throw new Error('Failed to calculate distance');
+      }
+
+      const distanceData = await distanceResponse.json();
+
+      // Then create ride request
+      const response = await fetch('http://localhost:3000/rides/request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -83,13 +96,16 @@ const DashboardPage = () => {
         body: JSON.stringify({
           rider_id: user.id,
           pickup: pickupLocation,
-          destination: destination
+          destination: destination,
+          distance: distanceData.distance,
+          duration: distanceData.duration
         }),
       });
 
       if (response.ok) {
         const rideData = await response.json();
-        alert('Ride request submitted successfully!');
+        alert(`Ride request submitted successfully! Estimated distance: ${distanceData.distance.text}, duration: ${distanceData.duration.text}`);
+
         // Refresh ride history
         const historyResponse = await fetch(`http://localhost:3000/rides?rider_id=${user.id}`);
         if (historyResponse.ok) {
@@ -105,20 +121,7 @@ const DashboardPage = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900">
-        <DashboardHeader />
-        <div className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-300">Loading dashboard...</p>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
+  // ... (rest of the component remains the same)
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -151,7 +154,7 @@ const DashboardPage = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search for rides, locations, or drivers..."
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg  text-gray-400 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -180,7 +183,7 @@ const DashboardPage = () => {
                     value={pickupLocation}
                     onChange={(e) => setPickupLocation(e.target.value)}
                     placeholder="Enter pickup location"
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-400 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 <div className="relative">
@@ -192,10 +195,10 @@ const DashboardPage = () => {
                     value={destination}
                     onChange={(e) => setDestination(e.target.value)}
                     placeholder="Enter destination"
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-400 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
-                <button 
+                <button
                   onClick={handleBookRide}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors duration-300"
                 >
@@ -207,7 +210,7 @@ const DashboardPage = () => {
 
           {/* Dashboard Cards Grid */}
           <div className="max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-8">
-            <div 
+            <div
               onClick={() => navigate('/rider/history')}
               className="bg-[#f0f4ff] dark:bg-[#5d7397] p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
             >
@@ -217,7 +220,7 @@ const DashboardPage = () => {
               </div>
               <p className="text-gray-600 dark:text-gray-300 text-sm">View your ride history</p>
             </div>
-            <div 
+            <div
               onClick={() => navigate('/rider/payments')}
               className="bg-[#f0f4ff] dark:bg-[#5d7397] p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
             >
@@ -227,7 +230,7 @@ const DashboardPage = () => {
               </div>
               <p className="text-gray-600 dark:text-gray-300 text-sm">Manage your payments</p>
             </div>
-            <div 
+            <div
               onClick={() => navigate('/rider/settings')}
               className="bg-[#f0f4ff] dark:bg-[#5d7397] p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
             >
@@ -237,7 +240,7 @@ const DashboardPage = () => {
               </div>
               <p className="text-gray-600 dark:text-gray-300 text-sm">Update your preferences</p>
             </div>
-            <div 
+            <div
               onClick={() => navigate('/help')}
               className="bg-[#f0f4ff] dark:bg-[#5d7397] p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
             >
