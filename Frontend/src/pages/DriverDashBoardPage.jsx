@@ -1,8 +1,17 @@
-import { useEffect, useState } from 'react';
-import DashboardHeader from '../components/DashBoardHeader';
-import Footer from '../components/Footer';
-import { FaCar, FaMapMarkerAlt, FaWallet, FaHistory, FaCog, FaBell, FaChartLine, FaUserAlt } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import DashboardHeader from "../components/DashBoardHeader";
+import Footer from "../components/Footer";
+import {
+  FaCar,
+  FaMapMarkerAlt,
+  FaWallet,
+  FaHistory,
+  FaCog,
+  FaBell,
+  FaChartLine,
+  FaUserAlt,
+} from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 const DriverDashboardPage = () => {
   const [user, setUser] = useState(null);
@@ -10,49 +19,55 @@ const DriverDashboardPage = () => {
   const [rideRequests, setRideRequests] = useState([]);
   const [currentRide, setCurrentRide] = useState(null);
   const [earnings, setEarnings] = useState({ today: 0, week: 0, month: 0 });
-  const [driverStatus, setDriverStatus] = useState('offline');
+  const [driverStatus, setDriverStatus] = useState("offline");
   const [isLoading, setIsLoading] = useState(true);
   const [vehicleInfo, setVehicleInfo] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
-    const storedTheme = localStorage.getItem('theme');
+    const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
+    const storedTheme = localStorage.getItem("theme");
 
     if (!loggedInUser) {
-      navigate('/login/driver');
+      navigate("/login/driver");
       return;
     }
 
     setUser(loggedInUser);
 
-    if (storedTheme === 'dark') {
+    if (storedTheme === "dark") {
       setIsDark(true);
-      document.documentElement.classList.add('dark');
+      document.documentElement.classList.add("dark");
     } else {
       setIsDark(false);
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove("dark");
     }
 
     // Fetch driver data
     const fetchDriverData = async () => {
       try {
         // Get driver's vehicle info
-        const vehicleRes = await fetch(`http://localhost:3000/driver/vehicle?driver_id=${loggedInUser.id}`);
+        const vehicleRes = await fetch(
+          `http://localhost:3000/driver/vehicle?driver_id=${loggedInUser.id}`
+        );
         if (vehicleRes.ok) {
           const vehicleData = await vehicleRes.json();
           setVehicleInfo(vehicleData);
         }
 
         // Get pending ride requests for this driver
-        const requestsRes = await fetch(`http://localhost:3000/ride/req?driver_id=${loggedInUser.id}`);
+        const requestsRes = await fetch(
+          `http://localhost:3000/ride/req?driver_id=${loggedInUser.id}`
+        );
         if (requestsRes.ok) {
           const requestsData = await requestsRes.json();
           setRideRequests(requestsData);
         }
 
         // Get driver's current active ride if any
-        const activeRideRes = await fetch(`http://localhost:3000/rides/active?driver_id=${loggedInUser.id}`);
+        const activeRideRes = await fetch(
+          `http://localhost:3000/rides/active?driver_id=${loggedInUser.id}`
+        );
         if (activeRideRes.ok) {
           const activeRideData = await activeRideRes.json();
           if (activeRideData.length > 0) {
@@ -61,21 +76,25 @@ const DriverDashboardPage = () => {
         }
 
         // Get driver status
-        const statusRes = await fetch(`http://localhost:3000/driver/status?driver_id=${loggedInUser.id}`);
+        const statusRes = await fetch(
+          `http://localhost:3000/driver/status?driver_id=${loggedInUser.id}`
+        );
         if (statusRes.ok) {
           const statusData = await statusRes.json();
-          setDriverStatus(statusData.status || 'offline');
+          setDriverStatus(statusData.status || "offline");
         }
 
         // Note: Earnings would need to be calculated in your backend
         // This is a placeholder - you'd need to implement this endpoint
-        const earningsRes = await fetch(`http://localhost:3000/driver/earnings?driver_id=${loggedInUser.id}`);
+        const earningsRes = await fetch(
+          `http://localhost:3000/driver/earnings?driver_id=${loggedInUser.id}`
+        );
         if (earningsRes.ok) {
           const earningsData = await earningsRes.json();
           setEarnings(earningsData);
         }
       } catch (error) {
-        console.error('Failed to fetch driver data:', error);
+        console.error("Failed to fetch driver data:", error);
       } finally {
         setIsLoading(false);
       }
@@ -85,100 +104,108 @@ const DriverDashboardPage = () => {
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('loggedInUser');
-    navigate('/login/driver');
+    localStorage.removeItem("loggedInUser");
+    navigate("/login/driver");
   };
 
   const toggleTheme = () => {
     const newTheme = !isDark;
     setIsDark(newTheme);
-    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+    localStorage.setItem("theme", newTheme ? "dark" : "light");
 
     if (newTheme) {
-      document.documentElement.classList.add('dark');
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove("dark");
     }
   };
 
   const acceptRide = async (rideId) => {
     try {
-      const response = await fetch(`http://localhost:3000/ride/req/${rideId}/accept`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          driver_id: user.id,
-          res_time: new Date().toISOString()
-        }),
-      });
+      const response = await fetch(
+        `http://localhost:3000/ride/req/${rideId}/accept`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            driver_id: user.id,
+            res_time: new Date().toISOString(),
+          }),
+        }
+      );
 
       if (response.ok) {
         // Create the ride in the rides table
         const createRideResponse = await fetch(`http://localhost:3000/rides`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             ride_id: rideId,
-            rider_id: rideRequests.find(r => r.ride_id === rideId).rider_id,
+            rider_id: rideRequests.find((r) => r.ride_id === rideId).rider_id,
             driver_id: user.id,
-            vehicle_id: vehicleInfo.vehicle_id
+            vehicle_id: vehicleInfo.vehicle_id,
           }),
         });
 
         if (createRideResponse.ok) {
-          const ride = rideRequests.find(r => r.ride_id === rideId);
+          const ride = rideRequests.find((r) => r.ride_id === rideId);
           setCurrentRide({
             ...ride,
-            vehicle_id: vehicleInfo.vehicle_id
+            vehicle_id: vehicleInfo.vehicle_id,
           });
-          setRideRequests(rideRequests.filter(r => r.ride_id !== rideId));
+          setRideRequests(rideRequests.filter((r) => r.ride_id !== rideId));
         }
       }
     } catch (error) {
-      console.error('Accept ride error:', error);
-      alert('Failed to accept ride. Please try again.');
+      console.error("Accept ride error:", error);
+      alert("Failed to accept ride. Please try again.");
     }
   };
 
   const completeRide = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/rides/${currentRide.ride_id}/complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(
+        `http://localhost:3000/rides/${currentRide.ride_id}/complete`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (response.ok) {
         setCurrentRide(null);
         // Refresh earnings
-        const earningsRes = await fetch(`http://localhost:3000/driver/earnings?driver_id=${user.id}`);
+        const earningsRes = await fetch(
+          `http://localhost:3000/driver/earnings?driver_id=${user.id}`
+        );
         if (earningsRes.ok) {
           const earningsData = await earningsRes.json();
           setEarnings(earningsData);
         }
       }
     } catch (error) {
-      console.error('Complete ride error:', error);
-      alert('Failed to complete ride. Please try again.');
+      console.error("Complete ride error:", error);
+      alert("Failed to complete ride. Please try again.");
     }
   };
 
   const toggleDriverStatus = async () => {
-    const newStatus = driverStatus === 'online' ? 'offline' : 'online';
+    const newStatus = driverStatus === "online" ? "offline" : "online";
     try {
       const response = await fetch(`http://localhost:3000/driver/status`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           driver_id: user.id,
-          status: newStatus
+          status: newStatus,
         }),
       });
 
@@ -186,7 +213,7 @@ const DriverDashboardPage = () => {
         setDriverStatus(newStatus);
       }
     } catch (error) {
-      console.error('Status update error:', error);
+      console.error("Status update error:", error);
     }
   };
 
@@ -197,7 +224,9 @@ const DriverDashboardPage = () => {
         <div className="flex-grow flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-300">Loading dashboard...</p>
+            <p className="mt-4 text-gray-600 dark:text-gray-300">
+              Loading dashboard...
+            </p>
           </div>
         </div>
         <Footer />
@@ -219,7 +248,7 @@ const DriverDashboardPage = () => {
                    shadow-md transition-colors duration-300"
         aria-label="Toggle theme"
       >
-        {isDark ? '🌞' : '🌙'}
+        {isDark ? "🌞" : "🌙"}
       </button>
 
       {/* Driver Dashboard Content */}
@@ -228,14 +257,20 @@ const DriverDashboardPage = () => {
           {/* Status Bar */}
           <div className="max-w-6xl mx-auto mb-6 flex justify-between items-center">
             <div className="flex items-center space-x-4">
-              <div className={`h-3 w-3 rounded-full ${driverStatus === 'online' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className="text-sm font-medium">{driverStatus === 'online' ? 'Online - Accepting rides' : 'Offline'}</span>
+              <div
+                className={`h-3 w-3 rounded-full ${driverStatus === "online" ? "bg-green-500" : "bg-red-500"}`}
+              ></div>
+              <span className="text-sm font-medium">
+                {driverStatus === "online"
+                  ? "Online - Accepting rides"
+                  : "Offline"}
+              </span>
             </div>
-            <button 
+            <button
               onClick={toggleDriverStatus}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${driverStatus === 'online' ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'} text-white transition-colors`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${driverStatus === "online" ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"} text-white transition-colors`}
             >
-              {driverStatus === 'online' ? 'Go Offline' : 'Go Online'}
+              {driverStatus === "online" ? "Go Offline" : "Go Online"}
             </button>
           </div>
 
@@ -249,28 +284,48 @@ const DriverDashboardPage = () => {
                     <FaUserAlt className="text-blue-600 dark:text-blue-300 text-xl" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg text-gray-800 dark:text-white">{user?.name}</h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-sm">Driver</p>
+                    <h3 className="font-bold text-lg text-gray-800 dark:text-white">
+                      {user?.name}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm">
+                      Driver
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Email</span>
-                    <span className="font-medium text-gray-800 dark:text-white">{user?.email}</span>
+                    <span className="text-gray-600 dark:text-gray-300">
+                      Email
+                    </span>
+                    <span className="font-medium text-gray-800 dark:text-white">
+                      {user?.email}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Phone</span>
-                    <span className="font-medium text-gray-800 dark:text-white">{user?.phone}</span>
+                    <span className="text-gray-600 dark:text-gray-300">
+                      Phone
+                    </span>
+                    <span className="font-medium text-gray-800 dark:text-white">
+                      {user?.phone}
+                    </span>
                   </div>
                   {vehicleInfo && (
                     <>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600 dark:text-gray-300">Vehicle</span>
-                        <span className="font-medium text-gray-800 dark:text-white">{vehicleInfo.model}</span>
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Vehicle
+                        </span>
+                        <span className="font-medium text-gray-800 dark:text-white">
+                          {vehicleInfo.model}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600 dark:text-gray-300">License Plate</span>
-                        <span className="font-medium text-gray-800 dark:text-white">{vehicleInfo.license_plate}</span>
+                        <span className="text-gray-600 dark:text-gray-300">
+                          License Plate
+                        </span>
+                        <span className="font-medium text-gray-800 dark:text-white">
+                          {vehicleInfo.license_plate}
+                        </span>
                       </div>
                     </>
                   )}
@@ -285,16 +340,28 @@ const DriverDashboardPage = () => {
                 </h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Today</span>
-                    <span className="font-medium text-gray-800 dark:text-white">${earnings.today.toFixed(2)}</span>
+                    <span className="text-gray-600 dark:text-gray-300">
+                      Today
+                    </span>
+                    <span className="font-medium text-gray-800 dark:text-white">
+                      ${earnings.today.toFixed(2)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">This Week</span>
-                    <span className="font-medium text-gray-800 dark:text-white">${earnings.week.toFixed(2)}</span>
+                    <span className="text-gray-600 dark:text-gray-300">
+                      This Week
+                    </span>
+                    <span className="font-medium text-gray-800 dark:text-white">
+                      ${earnings.week.toFixed(2)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">This Month</span>
-                    <span className="font-medium text-gray-800 dark:text-white">${earnings.month.toFixed(2)}</span>
+                    <span className="text-gray-600 dark:text-gray-300">
+                      This Month
+                    </span>
+                    <span className="font-medium text-gray-800 dark:text-white">
+                      ${earnings.month.toFixed(2)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -310,22 +377,32 @@ const DriverDashboardPage = () => {
                   </h3>
                   <div className="space-y-4">
                     <div>
-                      <p className="text-gray-600 dark:text-gray-300 text-sm">Ride ID</p>
-                      <p className="font-medium text-gray-800 dark:text-white">#{currentRide.ride_id}</p>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm">
+                        Ride ID
+                      </p>
+                      <p className="font-medium text-gray-800 dark:text-white">
+                        #{currentRide.ride_id}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-gray-600 dark:text-gray-300 text-sm">Request Time</p>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm">
+                        Request Time
+                      </p>
                       <p className="font-medium text-gray-800 dark:text-white">
                         {new Date(currentRide.req_time).toLocaleString()}
                       </p>
                     </div>
                     <div>
-                      <p className="text-gray-600 dark:text-gray-300 text-sm">Accepted Time</p>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm">
+                        Accepted Time
+                      </p>
                       <p className="font-medium text-gray-800 dark:text-white">
-                        {currentRide.res_time ? new Date(currentRide.res_time).toLocaleString() : 'Not yet accepted'}
+                        {currentRide.res_time
+                          ? new Date(currentRide.res_time).toLocaleString()
+                          : "Not yet accepted"}
                       </p>
                     </div>
-                    <button 
+                    <button
                       onClick={completeRide}
                       className="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-medium transition-colors"
                     >
@@ -341,13 +418,19 @@ const DriverDashboardPage = () => {
                   </h3>
                   {rideRequests.length > 0 ? (
                     <div className="space-y-4">
-                      {rideRequests.map(ride => (
-                        <div key={ride.ride_id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      {rideRequests.map((ride) => (
+                        <div
+                          key={ride.ride_id}
+                          className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                        >
                           <div className="flex justify-between items-start mb-2">
                             <div>
-                              <p className="font-medium text-gray-800 dark:text-white">Ride #{ride.ride_id}</p>
+                              <p className="font-medium text-gray-800 dark:text-white">
+                                Ride #{ride.ride_id}
+                              </p>
                               <p className="text-gray-600 dark:text-gray-300 text-sm">
-                                Requested: {new Date(ride.req_time).toLocaleTimeString()}
+                                Requested:{" "}
+                                {new Date(ride.req_time).toLocaleTimeString()}
                               </p>
                             </div>
                           </div>
@@ -356,13 +439,13 @@ const DriverDashboardPage = () => {
                               Rider ID: {ride.rider_id}
                             </p>
                           </div>
-                          <button 
+                          <button
                             onClick={() => acceptRide(ride.ride_id)}
-                            disabled={driverStatus !== 'online'}
+                            disabled={driverStatus !== "online"}
                             className={`w-full py-2 rounded-lg font-medium transition-colors ${
-                              driverStatus === 'online' 
-                                ? 'bg-blue-500 hover:bg-blue-600 text-white' 
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              driverStatus === "online"
+                                ? "bg-blue-500 hover:bg-blue-600 text-white"
+                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
                             }`}
                           >
                             Accept Ride
@@ -372,9 +455,9 @@ const DriverDashboardPage = () => {
                     </div>
                   ) : (
                     <p className="text-gray-600 dark:text-gray-300 text-center py-4">
-                      {driverStatus === 'online' 
-                        ? 'No ride requests available' 
-                        : 'Go online to receive ride requests'}
+                      {driverStatus === "online"
+                        ? "No ride requests available"
+                        : "Go online to receive ride requests"}
                     </p>
                   )}
                 </div>
@@ -391,50 +474,72 @@ const DriverDashboardPage = () => {
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Rides Completed</span>
-                    <span className="font-medium text-gray-800 dark:text-white">0</span>
+                    <span className="text-gray-600 dark:text-gray-300">
+                      Rides Completed
+                    </span>
+                    <span className="font-medium text-gray-800 dark:text-white">
+                      0
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Hours Online</span>
-                    <span className="font-medium text-gray-800 dark:text-white">0</span>
+                    <span className="text-gray-600 dark:text-gray-300">
+                      Hours Online
+                    </span>
+                    <span className="font-medium text-gray-800 dark:text-white">
+                      0
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Average Rating</span>
-                    <span className="font-medium text-gray-800 dark:text-white">Not rated yet</span>
+                    <span className="text-gray-600 dark:text-gray-300">
+                      Average Rating
+                    </span>
+                    <span className="font-medium text-gray-800 dark:text-white">
+                      Not rated yet
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Quick Navigation */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-                <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-4">Quick Actions</h3>
+                <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-4">
+                  Quick Actions
+                </h3>
                 <div className="grid grid-cols-2 gap-3">
-                  <button 
-                    onClick={() => navigate('/driver/history')}
+                  <button
+                    onClick={() => navigate("/driver/history")}
                     className="bg-[#f0f4ff] dark:bg-[#5d7397] hover:bg-[#dbeafe] dark:hover:bg-[#4a5f7a] p-3 rounded-lg flex flex-col items-center transition-colors"
                   >
                     <FaHistory className="text-gray-700 dark:text-gray-200 mb-1" />
-                    <span className="text-sm text-gray-700 dark:text-gray-200">Ride History</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-200">
+                      Ride History
+                    </span>
                   </button>
-                  <button 
-                    onClick={() => navigate('/driver/earnings')}
+                  <button
+                    onClick={() => navigate("/driver/earnings")}
                     className="bg-[#f0f4ff] dark:bg-[#5d7397] hover:bg-[#dbeafe] dark:hover:bg-[#4a5f7a] p-3 rounded-lg flex flex-col items-center transition-colors"
                   >
                     <FaWallet className="text-gray-700 dark:text-gray-200 mb-1" />
-                    <span className="text-sm text-gray-700 dark:text-gray-200">Earnings</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-200">
+                      Earnings
+                    </span>
                   </button>
-                  <button 
-                    onClick={() => navigate('/driver/settings')}
+                  <button
+                    onClick={() => navigate("/driver/settings")}
                     className="bg-[#f0f4ff] dark:bg-[#5d7397] hover:bg-[#dbeafe] dark:hover:bg-[#4a5f7a] p-3 rounded-lg flex flex-col items-center transition-colors"
                   >
                     <FaCog className="text-gray-700 dark:text-gray-200 mb-1" />
-                    <span className="text-sm text-gray-700 dark:text-gray-200">Settings</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-200">
+                      Settings
+                    </span>
                   </button>
-                  <button 
-                    onClick={handleLogout}
+                  <button
+                    onClick={() => navigate("/login")}
                     className="bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-800 p-3 rounded-lg flex flex-col items-center transition-colors"
                   >
-                    <span className="text-sm text-red-600 dark:text-red-300">Log Out</span>
+                    <span className="text-sm text-red-600 dark:text-red-300">
+                      Log Out
+                    </span>
                   </button>
                 </div>
               </div>

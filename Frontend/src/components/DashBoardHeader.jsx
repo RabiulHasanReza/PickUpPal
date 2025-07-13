@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { FaGlobe, FaQuestionCircle, FaUserCircle } from 'react-icons/fa';
+import { useNavigate } from "react-router-dom";
 import './Header.css';
 
 function DashboardHeader() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem('loggedInUser'));
@@ -23,15 +25,15 @@ function DashboardHeader() {
 
           <nav className="flex items-center gap-4 mt-3 sm:mt-0 flex-wrap">
             {/* Language */}
-            <div className="flex items-center gap-1 cursor-pointer hover:text-gray-200 text-sm">
+            {/* <div className="flex items-center gap-1 cursor-pointer hover:text-gray-200 text-sm">
               <FaGlobe />
               <span>EN</span>
-            </div>
+            </div> */}
 
             {/* Help */}
             <div className="flex items-center gap-1 cursor-pointer hover:text-gray-200 text-sm">
               <FaQuestionCircle />
-              <span>Help</span>
+              <span onClick={() =>navigate("/help")}>Help</span>
             </div>
 
             {/* Profile */}
@@ -56,7 +58,15 @@ function DashboardHeader() {
                     Log Out
                   </button>
                   <button
-                    onClick={() => alert('Account Settings')}
+                   
+                    onClick={() => {
+                      if (user && user.role === 'driver') {
+                        navigate("/driver/settings");
+                      }
+                      else{
+                        navigate("/rider/settings");
+                      }
+                    }}
                     className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                   >
                     Account
