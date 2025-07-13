@@ -29,19 +29,24 @@ CREATE TABLE vehicles (
 );
 
 CREATE TABLE ride_req(
-    ride_id SERIAL CONSTRAINT USER_PK PRIMARY KEY,
+    ride_id SERIAL CONSTRAINT ride_PK PRIMARY KEY,
     rider_id INTEGER , 
-    req_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-
+    req_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     driver_id INTEGER ,
     res_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ,
-    arrived_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
-
+    arrived_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+    status VARCHAR(50)
 );
 CREATE TABLE rides(
     ride_id INTEGER REFERENCES ride_req(ride_id),
     rider_id INTEGER, 
+    source VARCHAR2(255) ,
+    destination VARCHAR2(255) ,
      driver_id INTEGER ,
-     vehicle_id INTEGER
-
+     vehicle VARCHAR(255),
+     Fare INTEGER,
+     vehicle_id INTEGER,
+     start_time TIMESTAMP,
+     end_time TIMESTAMP,
+     status VARCHAR(50)
 );
