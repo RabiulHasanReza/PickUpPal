@@ -42,11 +42,6 @@ const SignUpPage = () => {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
     setIsLoading(true);
     setError('');
 
@@ -86,7 +81,8 @@ const SignUpPage = () => {
       localStorage.setItem('token', data.token);
 
       // Redirect based on role
-      navigate(role === 'driver' ? '/login' : '/login');
+      // In the handleSignup function, change the navigate line to:
+       navigate(role === 'driver' ? '/driversignup' : '/login');
 
     } catch (err) {
       setError(err.message || 'Signup failed. Please try again.');

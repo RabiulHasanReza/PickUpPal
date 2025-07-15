@@ -17,7 +17,9 @@ const server = app.listen(port, () => {
   console.log(`PickUpPal listening on port ${port}`);
 });
 // const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });  // http server & websocket server working on same port
+const wss = new WebSocket.Server({ server, path: '/ride' });  // http server & websocket server working on same port
+// route :  ws://localhost:3000/ride
+
 
 setWss(wss); // Make wss available to notifyDrivers
 

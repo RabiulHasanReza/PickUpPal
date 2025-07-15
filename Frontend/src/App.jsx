@@ -6,6 +6,15 @@ import SignupPage from './pages/SingUpPage';
 import DashboardPage from './pages/DashBoardPage';
 import DriverDashboardPage from './pages/DriverDashBoardPage';
 import NotFoundPage from './pages/NotFoundPage';
+import DriverSignUpPage from './pages/DriverSignUp';
+import RidePage from './pages/RidePage';
+import RideHistoryPage from "./pages/RideHistoryPage";
+import PaymentMethodsPage from "./pages/PaymentMethodsPage";
+import SettingsPage from "./pages/SettingsPage";
+import DriverRideHistoryPage from "./pages/DriverRideHistoryPage";
+import DriverEarningsPage from "./pages/DriverEarningsPage";
+import DriverSettingsPage from "./pages/DriverSettingsPage";
+import HelpPage from './pages/HelpPage';
 
 function App() {
   return (
@@ -16,7 +25,16 @@ function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/driverdashboard" element={<DriverDashboardPage />} />
+        <Route path="/driversignup" element={<DriverSignUpPage />} />
+        <Route path="/ride" element={<RidePage />} />
         <Route path="*" element={<NotFoundPage />} />
+        <Route path="/rider/history" element={<RideHistoryPage />} />
+        <Route path="/rider/payments" element={<PaymentMethodsPage />} />
+        <Route path="/rider/settings" element={<SettingsPage />} />
+        <Route path="/driver/history" element={<DriverRideHistoryPage />} />
+        <Route path="/driver/earnings" element={<DriverEarningsPage />} />
+        <Route path="/driver/settings" element={<DriverSettingsPage />} />
+        <Route path="/help" element={<HelpPage/>} />
       </Routes>
     </Router>
   );

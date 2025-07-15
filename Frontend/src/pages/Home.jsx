@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import Header from '../components/Header';
-import { motion } from 'framer-motion';
-import './Home.css';
-import Footer from '../components/Footer';
-import { FaSearchLocation, FaMapMarkerAlt, FaArrowDown } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import Header from "../components/Header";
+import { motion } from "framer-motion";
+import "./Home.css";
+import Footer from "../components/Footer";
+import { FaSearchLocation, FaMapMarkerAlt, FaArrowDown } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 const paragraphLines = [
   "PickUpPal is your go-to ride-sharing partner,",
@@ -12,38 +12,36 @@ const paragraphLines = [
   "transportation anytime, anywhere. Whether you're heading to work,",
   "catching a flight, or exploring the city, we've got you covered.",
   "With a user-friendly platform and trusted drivers,",
-  "PickUpPal ensures every ride feels like a journey with a friend."
+  "PickUpPal ensures every ride feels like a journey with a friend.",
 ];
-
 
 const Home = () => {
   const navigate = useNavigate();
   const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    return saved === 'dark';
+    const saved = localStorage.getItem("theme");
+    return saved === "dark";
   });
-  const [source, setSource] = useState('');
-  const [destination, setDestination] = useState('');
+  const [source, setSource] = useState("");
+  const [destination, setDestination] = useState("");
 
   useEffect(() => {
     const root = document.documentElement;
     if (isDark) {
-      root.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
+      root.classList.add("dark");
+      localStorage.setItem("theme", "dark");
     } else {
-      root.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
+      root.classList.remove("dark");
+      localStorage.setItem("theme", "light");
     }
   }, [isDark]);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    alert("you don't have an account")
-    console.log('Searching ride from:', source, 'to:', destination);
-    navigate('/login')
+    alert("you don't have an account");
+    console.log("Searching ride from:", source, "to:", destination);
+    navigate("/login");
   };
-  
- 
+
   return (
     <>
       <Header />
@@ -57,7 +55,7 @@ const Home = () => {
                      shadow-md transition-colors duration-300"
           onClick={() => setIsDark(!isDark)}
         >
-          {isDark ? '🌞' : '🌙'}
+          {isDark ? "🌞" : "🌙"}
         </button>
 
         <div className="text-black dark:text-white">
@@ -91,11 +89,11 @@ const Home = () => {
                   required
                 />
               </div>
-              
+
               <div className="flex justify-center text-gray-400 py-1">
                 <FaArrowDown />
               </div>
-              
+
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FaMapMarkerAlt className="text-gray-400" />
@@ -109,7 +107,7 @@ const Home = () => {
                   required
                 />
               </div>
-              
+
               <button
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-300 flex items-center justify-center mt-4"
@@ -141,32 +139,32 @@ const Home = () => {
                 alt="PickUpPal Preview"
                 initial={{ x: 200, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 60, delay: 1.2 }}
+                transition={{ type: "spring", stiffness: 60, delay: 1.2 }}
                 className="w-full h-full object-contain"
               />
               <motion.div
                 className="absolute top-0 left-[-75%] w-1/2 h-full bg-gradient-to-r from-transparent via-white/60 to-transparent skew-x-[-20deg] pointer-events-none"
-                animate={{ left: ['-75%', '125%'] }}
+                animate={{ left: ["-75%", "125%"] }}
                 transition={{
                   duration: 2,
                   repeat: Infinity,
-                  ease: 'easeInOut',
+                  ease: "easeInOut",
                 }}
               />
             </div>
           </div>
 
           <motion.img
-            src="/image2.jpg" 
+            src="/image2.jpg"
             alt="Sliding Image"
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 80, delay: 2.5 }}
+            transition={{ type: "spring", stiffness: 80, delay: 2.5 }}
             className="mx-auto mt-12 w-64 sm:w-80 md:w-96 lg:w-[500px] h-auto rounded-lg shadow-xl"
           />
         </div>
       </div>
-      <Footer/>
+      <Footer />
     </>
   );
 };

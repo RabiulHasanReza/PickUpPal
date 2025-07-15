@@ -1,59 +1,65 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { motion } from "framer-motion";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       // Try rider login first
-      const riderResponse = await fetch('http://localhost:3000/api/login/rider', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const riderResponse = await fetch(
+        "http://localhost:3000/api/login/rider",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
       if (riderResponse.ok) {
         const userData = await riderResponse.json();
-        localStorage.setItem('loggedInUser', JSON.stringify(userData));
-        navigate('/dashboard');
+        localStorage.setItem("loggedInUser", JSON.stringify(userData));
+        navigate("/dashboard");
         return;
       }
 
       // If not a rider, try driver login
-      const driverResponse = await fetch('http://localhost:3000/api/login/driver', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const driverResponse = await fetch(
+        "http://localhost:3000/api/login/driver",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
       if (driverResponse.ok) {
         const userData = await driverResponse.json();
-        localStorage.setItem('loggedInUser', JSON.stringify(userData));
-        navigate('/driverdashboard');
+        localStorage.setItem("loggedInUser", JSON.stringify(userData));
+        navigate("/driverdashboard");
         return;
       }
 
       // If neither worked
-      setError('Invalid email or password');
+      setError("Invalid email or password");
     } catch (err) {
-      setError('Failed to connect to server');
-      console.error('Login error:', err);
+      setError("Failed to connect to server");
+      console.error("Login error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +83,10 @@ const LoginPage = () => {
               {error}
             </div>
           )}
-          <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5 md:space-y-6">
+          <form
+            onSubmit={handleLogin}
+            className="space-y-4 sm:space-y-5 md:space-y-6"
+          >
             <div>
               <label className="block mb-1 text-sm sm:text-base md:text-lg text-gray-700 dark:text-gray-300">
                 Email
@@ -109,17 +118,23 @@ const LoginPage = () => {
               disabled={isLoading}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm sm:text-base md:text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-70"
             >
-              {isLoading ? 'Logging in...' : 'Log In'}
+              {isLoading ? "Logging in..." : "Log In"}
             </button>
           </form>
-          
+
           <div className="mt-4 sm:mt-6 text-center">
-            <a href="/forgot-password" className="text-sm sm:text-base text-blue-600 dark:text-blue-400 hover:underline">
+            <a
+              href="/forgot-password"
+              className="text-sm sm:text-base text-blue-600 dark:text-blue-400 hover:underline"
+            >
               Forgot password?
             </a>
             <p className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">
-              Don't have an account?{' '}
-              <a href="/signup" className="text-blue-600 dark:text-blue-400 hover:underline">
+              Don't have an account?{" "}
+              <a
+                href="/signup"
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+              >
                 Sign up
               </a>
             </p>
