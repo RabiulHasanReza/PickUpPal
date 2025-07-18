@@ -12,8 +12,10 @@ import {
   FaUserAlt,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import useWebSocket from "../context/WebSocketContext";
 
 const DriverDashboardPage = () => {
+  const { ws, connected } = useWebSocket();
   const [user, setUser] = useState(null);
   const [isDark, setIsDark] = useState(false);
   const [rideRequests, setRideRequests] = useState([]);
@@ -22,7 +24,21 @@ const DriverDashboardPage = () => {
   const [driverStatus, setDriverStatus] = useState("offline");
   const [isLoading, setIsLoading] = useState(true);
   const [vehicleInfo, setVehicleInfo] = useState(null);
+  const [currentLocation, setCurrentLocation] = useState(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCurrentLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (error) => console.error("Geolocation error:", error),
+      { enableHighAccuracy: true }
+    );
+  }, []);
 
   useEffect(() => {
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
@@ -103,6 +119,52 @@ const DriverDashboardPage = () => {
     fetchDriverData();
   }, [navigate]);
 
+  useEffect(() => {
+    if (!ws) return;
+
+    const handleWebSocketMessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("WebSocket message received:", data);
+
+        // Handle new ride requests in the exact format you're receiving
+        if (data.type === "new_ride") {
+          setRideRequests((prev) => {
+            // Generate a temporary ride_id if not provided (using timestamp)
+            const rideWithId = {
+              ...data.ride,
+              ride_id: data.ride.ride_id || Date.now(),
+              req_time: new Date().toISOString(),
+            };
+
+            // Check if this request already exists to prevent duplicates
+            const exists = prev.some(
+              (req) =>
+                req.rider_id === data.ride.rider_id &&
+                req.origin === data.ride.origin &&
+                req.destination === data.ride.destination
+            );
+
+            if (!exists) {
+              return [...prev, rideWithId];
+            }
+            return prev;
+          });
+        }
+
+        // Handle other message types as needed...
+      } catch (error) {
+        console.error("Error processing WebSocket message:", error);
+      }
+    };
+
+    ws.addEventListener("message", handleWebSocketMessage);
+
+    return () => {
+      ws.removeEventListener("message", handleWebSocketMessage);
+    };
+  }, [ws]);
+
   const handleLogout = () => {
     localStorage.removeItem("loggedInUser");
     navigate("/login/driver");
@@ -121,50 +183,83 @@ const DriverDashboardPage = () => {
   };
 
   const acceptRide = async (rideId) => {
+    console.log("🔄 Accepting ride with ID:", rideId);
+
     try {
-      const response = await fetch(
-        `http://localhost:3000/ride/req/${rideId}/accept`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            driver_id: user.id,
-            res_time: new Date().toISOString(),
-          }),
-        }
-      );
+      const rideToAccept = rideRequests.find((r) => r.ride_id === rideId);
+      if (!rideToAccept) {
+        console.error("❌ Ride not found in rideRequests:", rideId);
+        return;
+      }
 
-      if (response.ok) {
-        // Create the ride in the rides table
-        const createRideResponse = await fetch(`http://localhost:3000/rides`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ride_id: rideId,
-            rider_id: rideRequests.find((r) => r.ride_id === rideId).rider_id,
-            driver_id: user.id,
-            vehicle_id: vehicleInfo.vehicle_id,
-          }),
-        });
+      console.log("✅ Ride found:", rideToAccept);
 
-        if (createRideResponse.ok) {
-          const ride = rideRequests.find((r) => r.ride_id === rideId);
-          setCurrentRide({
-            ...ride,
-            vehicle_id: vehicleInfo.vehicle_id,
-          });
-          setRideRequests(rideRequests.filter((r) => r.ride_id !== rideId));
-        }
+      const payload = {
+        action: "accepted",
+        role: "driver",
+        ride_id: rideId,
+      };
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        console.log("📡 Sending WebSocket payload:", payload);
+        ws.send(JSON.stringify(payload));
+
+        ws.onmessage = (msg) => {
+          console.log("📥 WebSocket message received:", msg.data);
+
+          try {
+            const response = JSON.parse(msg.data);
+            console.log("✅ Parsed WebSocket response:", response);
+
+            if (response.message === "Ride accepted successfully") {
+              console.log("🎉 Ride accepted, updating state...");
+
+              setCurrentRide({
+                ride_id: rideId,
+                rider_id: rideToAccept.rider_id,
+                origin: rideToAccept.origin,
+                destination: rideToAccept.destination,
+                vehicle: rideToAccept.vehicle,
+                req_time: rideToAccept.req_time,
+                res_time: new Date().toISOString(),
+              });
+
+              setRideRequests((prev) =>
+                prev.filter((r) => r.ride_id !== rideId)
+              );
+            } else {
+              console.warn(
+                "⚠️ Unexpected WebSocket response message:",
+                response.message
+              );
+            }
+          } catch (e) {
+            console.error("❌ Failed to parse WebSocket message:", e);
+          }
+        };
+      } else {
+        console.error("❌ WebSocket is not connected.");
+        alert("WebSocket is not connected. Please try again.");
       }
     } catch (error) {
-      console.error("Accept ride error:", error);
-      alert("Failed to accept ride. Please try again.");
+      console.error("🔥 Unexpected error in acceptRide:", error);
+      alert("Something went wrong. Please try again.");
     }
   };
+  const declineRide = (rideId) => {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+  const declineMessage = {
+    role: "driver",
+    action: "decline",
+    driver_id: user.id, // Your driver's ID
+    ride_id: rideId
+  };
+
+  ws.send(JSON.stringify(declineMessage));
+   // Immediately remove the ride from local state
+  setRideRequests(prev => prev.filter(ride => ride.ride_id !== rideId));
+};
 
   const completeRide = async () => {
     try {
@@ -197,23 +292,79 @@ const DriverDashboardPage = () => {
 
   const toggleDriverStatus = async () => {
     const newStatus = driverStatus === "online" ? "offline" : "online";
-    try {
-      const response = await fetch(`http://localhost:3000/driver/status`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          driver_id: user.id,
-          status: newStatus,
-        }),
-      });
 
-      if (response.ok) {
-        setDriverStatus(newStatus);
+    if (!user?.id) {
+      alert("User not found.");
+      return;
+    }
+
+    if (newStatus === "online" && !currentLocation) {
+      alert("Please enable location services to go online.");
+      return;
+    }
+
+    try {
+      const payload =
+        newStatus === "online"
+          ? {
+              role: "driver",
+              action: "register",
+              driver_id: user.id,
+              cur_location: currentLocation,
+            }
+          : {
+              role: "driver",
+              action: "deregister",
+              driver_id: user.id,
+            };
+
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        throw new Error("WebSocket is not connected.");
       }
+
+      ws.send(JSON.stringify(payload));
+
+      ws.onmessage = (msg) => {
+        try {
+          const response = JSON.parse(msg.data);
+
+          if (response.message === "Driver registered successfully") {
+            setDriverStatus("online");
+          } else if (response.message === "Driver deregistered successfully") {
+            setDriverStatus("offline");
+          } else {
+            console.warn("Unexpected message:", response);
+          }
+        } catch (e) {
+          console.error("Error parsing WebSocket message:", e);
+        }
+      };
     } catch (error) {
-      console.error("Status update error:", error);
+      console.error("WebSocket update failed:", error);
+
+      // Fallback to HTTP
+      try {
+        const response = await fetch(`http://localhost:3000/driver/status`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            driver_id: user.id,
+            status: newStatus,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        setDriverStatus(result.status || newStatus);
+      } catch (httpError) {
+        console.error("HTTP fallback failed:", httpError);
+        alert("Failed to update status. Please try again.");
+      }
     }
   };
 
@@ -429,27 +580,65 @@ const DriverDashboardPage = () => {
                                 Ride #{ride.ride_id}
                               </p>
                               <p className="text-gray-600 dark:text-gray-300 text-sm">
-                                Requested:{" "}
-                                {new Date(ride.req_time).toLocaleTimeString()}
+                                Rider ID: {ride.rider_id}
                               </p>
                             </div>
                           </div>
-                          <div className="mb-3">
-                            <p className="text-gray-600 dark:text-gray-300 text-sm">
-                              Rider ID: {ride.rider_id}
-                            </p>
+                          <div className="mb-3 space-y-2">
+                            <div className="flex items-center">
+                              <FaMapMarkerAlt className="text-green-500 mr-2" />
+                              <span className="text-gray-600 dark:text-gray-300">
+                                From: {ride.origin}
+                              </span>
+                            </div>
+                            <div className="flex items-center">
+                              <FaMapMarkerAlt className="text-red-500 mr-2" />
+                              <span className="text-gray-600 dark:text-gray-300">
+                                To: {ride.destination}
+                              </span>
+                            </div>
+                            <div className="flex items-center">
+                              <FaCar className="text-blue-500 mr-2" />
+                              <span className="text-gray-600 dark:text-gray-300">
+                                Vehicle: {ride.vehicle}
+                              </span>
+                            </div>
                           </div>
-                          <button
-                            onClick={() => acceptRide(ride.ride_id)}
-                            disabled={driverStatus !== "online"}
-                            className={`w-full py-2 rounded-lg font-medium transition-colors ${
-                              driverStatus === "online"
-                                ? "bg-blue-500 hover:bg-blue-600 text-white"
-                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                            }`}
-                          >
-                            Accept Ride
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => acceptRide(ride.ride_id)}
+                              disabled={
+                                driverStatus !== "online" ||
+                                !ws ||
+                                ws.readyState !== WebSocket.OPEN
+                              }
+                              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                                driverStatus === "online" &&
+                                ws?.readyState === WebSocket.OPEN
+                                  ? "bg-blue-500 hover:bg-blue-600 text-white"
+                                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              }`}
+                            >
+                              Accept Ride
+                            </button>
+
+                            <button
+                              onClick={() => declineRide(ride.ride_id)}
+                              disabled={
+                                driverStatus !== "online" ||
+                                !ws ||
+                                ws.readyState !== WebSocket.OPEN
+                              }
+                              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                                driverStatus === "online" &&
+                                ws?.readyState === WebSocket.OPEN
+                                  ? "bg-red-500 hover:bg-red-600 text-white"
+                                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              }`}
+                            >
+                              Decline Ride
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>

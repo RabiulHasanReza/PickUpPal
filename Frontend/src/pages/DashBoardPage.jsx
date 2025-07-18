@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import DashboardHeader from "../components/DashBoardHeader";
 import Footer from "../components/Footer";
+import useWebSocket from "../context/WebSocketContext";
 import {
   FaSearch,
   FaHistory,
@@ -36,6 +37,7 @@ L.Icon.Default.mergeOptions({
 const ORS_API_KEY = "5b3ce3597851110001cf6248159fb5b9de2a4436a27aa58dcf630560";
 
 const DashboardPage = () => {
+  const { ws, connected } = useWebSocket();
   const [user, setUser] = useState(null);
   const [isDark, setIsDark] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -57,6 +59,8 @@ const DashboardPage = () => {
     end: false,
   });
   const [nearbyDrivers, setNearbyDrivers] = useState([]);
+  const [driverInfo, setDriverInfo] = useState(null);
+
   const navigate = useNavigate();
   const startInputRef = useRef();
   const endInputRef = useRef();
@@ -146,18 +150,6 @@ const DashboardPage = () => {
     getRoute();
   }, [pickupCoords, endCoords]);
 
-  // // Fetch nearby drivers
-  // useEffect(() => {
-  //   if (pickupCoords) {
-  //     fetch(`http://localhost:3000/api/driver/nearby?lat=${pickupCoords.lat}&lng=${pickupCoords.lng}&radius=0.05`)
-  //       .then(res => res.json())
-  //       .then(data => setNearbyDrivers(Array.isArray(data) ? data : []))
-  //       .catch(() => setNearbyDrivers([]));
-  //   } else {
-  //     setNearbyDrivers([]);
-  //   }
-  // }, [pickupCoords]);
-
   const fetchRoute = async (start, end) => {
     const url =
       "https://api.openrouteservice.org/v2/directions/driving-car/geojson";
@@ -203,7 +195,6 @@ const DashboardPage = () => {
       return data.results || [];
     } catch (err) {
       console.error("Geocoding error:", err.message);
-      // You might want to show this error to the user
       setError(err.message);
       return [];
     }
@@ -292,45 +283,144 @@ const DashboardPage = () => {
     }
   };
 
-  const handleBookRide = async (e) => {
+  const handleBookRide = (e) => {
     e.preventDefault();
     setError("");
     setSubmitting(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Please log in to request a ride.");
-        setSubmitting(false);
-        return;
-      }
-      const body = {
-        start_location: pickupLocation,
-        end_location: destination,
-        start_latitude: pickupCoords?.lat,
-        start_longitude: pickupCoords?.lng,
-        end_latitude: endCoords?.lat,
-        end_longitude: endCoords?.lng,
-      };
-      const res = await fetch("http://localhost:3000/request-ride", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
 
-      const data = await res.json();
-      if (res.ok) {
-        navigate(`/ride/${data.ride_id}/rider-sim`);
-      } else {
-        setError(data.message || "Failed to request ride");
+    const rider_id = user.id;
+    if (!rider_id) {
+      setError("Invalid token. Cannot find user ID.");
+      setSubmitting(false);
+      return;
+    }
+
+    const rideRequest = {
+      role: "rider",
+      action: "ride_request",
+      rider_id,
+      origin: pickupLocation,
+      destination: destination,
+      start_latitude: pickupCoords?.lat,
+      start_longitude: pickupCoords?.lng,
+      end_latitude: endCoords?.lat,
+      end_longitude: endCoords?.lng,
+    };
+
+    try {
+      ws.send(JSON.stringify(rideRequest));
+
+      ws.onmessage = (msg) => {
+        const response = JSON.parse(msg.data);
+
+        if (response.fares) {
+          const vehicleSelection = {
+            role: "rider",
+            action: "select_vehicle",
+            rider_id,
+            origin: pickupLocation,
+            destination: destination,
+            vehicle: "bike",
+          };
+          ws.send(JSON.stringify(vehicleSelection));
+        } else if (response.status === "accepted") {
+          navigate(`/ride/${response.driver_id}/rider-sim`);
+        } else if (response.status === "no_driver_found") {
+          setError("No drivers available right now.");
+          setSubmitting(false);
+        }
+      };
+    } catch (err) {
+      console.error("WebSocket error:", err);
+      setError("WebSocket communication failed.");
+      setSubmitting(false);
+    }
+  };
+
+useEffect(() => {
+  if (!ws) return;
+
+  const handleMessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      console.log("Rider WebSocket message (RAW):", event.data);
+      console.log("Rider WebSocket message (PARSED):", data);
+
+      // Handle ride acceptance
+      if (data.status && data.status.trim() === "accepted") {
+        console.log("ACCEPTED RIDE DATA RECEIVED:", data);
+
+        const newDriverInfo = {
+          driverId: data.driver_id,
+          name: data.driver_name,
+          phone: data.driver_phone,
+          model: data.model,
+          licensePlate: data.license_plate,
+          color: data.color,
+          rideId: data.ride_id,
+        };
+
+        console.log("Setting driverInfo state with:", newDriverInfo);
+        setDriverInfo(newDriverInfo);
+        setNotification({
+          type: 'success',
+          message: 'Ride accepted! Driver details available.'
+        });
+        
+        // Optional: Navigate to ride tracking page
+        // navigate(`/ride/${data.ride_id}`);
+      }
+      // Handle ride decline
+      else if (data.action === "declined" || data.status === "declined") {
+        console.log("RIDE DECLINED:", data);
+        setNotification({
+          type: 'warning',
+          message: data.message || 'Driver declined the ride'
+        });
+        
+        // Reset driver info if it was previously set
+        setDriverInfo(null);
+        
+        // Optional: Re-fetch available drivers
+        // fetchNearbyDrivers();
+      }
+      // Handle other status updates
+      else if (data.status) {
+        console.log("RIDE STATUS UPDATE:", data.status);
+        setNotification({
+          type: 'info',
+          message: `Ride status: ${data.status}`
+        });
+      }
+      // Handle fare estimates
+      else if (data.fares) {
+        console.log("FARE ESTIMATES RECEIVED:", data.fares);
+        setFares(data.fares);
+      }
+      // Handle generic messages
+      else if (data.message) {
+        console.log("SYSTEM MESSAGE:", data.message);
+        setNotification({
+          type: 'info',
+          message: data.message
+        });
       }
     } catch (err) {
-      setError("Network or server error");
+      console.error("Error parsing WebSocket message:", err);
+      setNotification({
+        type: 'error',
+        message: 'Error processing ride update'
+      });
     }
-    setSubmitting(false);
   };
+
+  ws.addEventListener("message", handleMessage);
+
+  return () => {
+    ws.removeEventListener("message", handleMessage);
+  };
+}, [ws, navigate]); // Add other dependencies if needed
+
 
   const onMarkerDragEnd = (e) => {
     const marker = e.target;
@@ -544,13 +634,13 @@ const DashboardPage = () => {
 
                 {distance && duration && (
                   <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-center">
-                    <p className="text-gray-800 dark:text-gray-200">
+                    <p className="text-gray-800 dark:text-gray-100">
                       <span className="font-semibold">Distance:</span>{" "}
                       {(distance / 1000).toFixed(2)} km
                     </p>
-                    <p className="text-gray-800 dark:text-gray-200">
+                    <p className="text-gray-800 dark:text-gray-100">
                       <span className="font-semibold">Duration:</span>{" "}
-                      {formatDuration(duration*5)}
+                      {formatDuration(duration * 5)}
                     </p>
                   </div>
                 )}
@@ -572,6 +662,37 @@ const DashboardPage = () => {
             </div>
           </div>
 
+          {/* Driver Acceptance Message */}
+          {driverInfo && (
+            <div className="max-w-3xl mx-auto bg-blue-300 dark:bg-blue-400 p-4 rounded-lg shadow-md mb-6">
+              <h3 className="text-xl font-bold text-green-800 dark:text-green-200 mb-3">
+                🎉 Ride Accepted!
+              </h3>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="font-medium text-gray-800 dark:text-gray-100">Driver:</p>
+                  <p>{driverInfo.name}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-800 dark:text-gray-100">Phone:</p>
+                  <p>{driverInfo.phone}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-800 dark:text-gray-100">Vehicle:</p>
+                  <p>{driverInfo.model} ({driverInfo.color})</p>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-800 dark:text-gray-100">Plate:</p>
+                  <p>{driverInfo.licensePlate}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="font-medium text-gray-800 dark:text-gray-100">Ride ID:</p>
+                  <p>{driverInfo.rideId}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Dashboard Cards Grid */}
           <div className="max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-8">
             <div
@@ -579,7 +700,7 @@ const DashboardPage = () => {
               className="bg-[#f0f4ff] dark:bg-[#5d7397] p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
             >
               <div className="flex items-center mb-2">
-                <FaHistory className="text-gray-700 dark:text-gray-200 mr-2" />
+                <FaHistory className="text-gray-700 dark:text-gray-100 mr-2" />
                 <h3 className="font-semibold text-gray-800 dark:text-white">
                   Recent Rides
                 </h3>
@@ -593,7 +714,7 @@ const DashboardPage = () => {
               className="bg-[#f0f4ff] dark:bg-[#5d7397] p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
             >
               <div className="flex items-center mb-2">
-                <FaWallet className="text-gray-700 dark:text-gray-200 mr-2" />
+                <FaWallet className="text-gray-700 dark:text-gray-100 mr-2" />
                 <h3 className="font-semibold text-gray-800 dark:text-white">
                   Payment Methods
                 </h3>
@@ -607,7 +728,7 @@ const DashboardPage = () => {
               className="bg-[#f0f4ff] dark:bg-[#5d7397] p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
             >
               <div className="flex items-center mb-2">
-                <FaCog className="text-gray-700 dark:text-gray-200 mr-2" />
+                <FaCog className="text-gray-700 dark:text-gray-100 mr-2" />
                 <h3 className="font-semibold text-gray-800 dark:text-white">
                   Settings
                 </h3>
@@ -621,7 +742,7 @@ const DashboardPage = () => {
               className="bg-[#f0f4ff] dark:bg-[#5d7397] p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
             >
               <div className="flex items-center mb-2">
-                <FaQuestionCircle className="text-gray-700 dark:text-gray-200 mr-2" />
+                <FaQuestionCircle className="text-gray-700 dark:text-gray-100 mr-2" />
                 <h3 className="font-semibold text-gray-800 dark:text-white">
                   Help Center
                 </h3>
@@ -648,7 +769,7 @@ const DashboardPage = () => {
                       <FaCar className="text-blue-600 dark:text-blue-300" />
                     </div>
                     <div>
-                      <p className="text-gray-800 dark:text-gray-200 text-sm font-medium">
+                      <p className="text-gray-800 dark:text-gray-100 text-sm font-medium">
                         Ride {ride.ride_id} - {ride.status || "completed"}
                       </p>
                       <p className="text-gray-500 dark:text-gray-400 text-xs">
@@ -668,7 +789,7 @@ const DashboardPage = () => {
           {/* Logout Button */}
           <div className="max-w-3xl mx-auto flex justify-center">
             <button
-              onClick={() => navigate("/driver/settings")}
+              onClick={handleLogout}
               className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors duration-300"
             >
               Log Out
