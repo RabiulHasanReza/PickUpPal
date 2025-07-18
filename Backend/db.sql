@@ -33,8 +33,8 @@ CREATE TABLE ride_req(
     rider_id INTEGER , 
     req_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     driver_id INTEGER ,
-    res_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ,
-    arrived_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+    res_time TIMESTAMP  ,
+    arrived_time TIMESTAMP , 
     status VARCHAR(50)
 );
 CREATE TABLE rides(
@@ -49,4 +49,9 @@ CREATE TABLE rides(
      start_time TIMESTAMP,
      end_time TIMESTAMP,
      status VARCHAR(50)
+);
+CREATE TABLE ratings(
+    ride_id INTEGER REFERENCES ride_req(ride_id),
+    rating INTEGER ,  
+    comment VARCHAR(50)
 );

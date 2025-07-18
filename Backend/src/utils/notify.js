@@ -171,7 +171,7 @@ async function notifyDriversSequentially(driversList, rideInfo, onAccept, onNoDr
           driverInMap.available = true;
           tryNextDriver();
         }
-      }, 80000);
+      }, 20000);
     }
 
     tryNextDriver();
