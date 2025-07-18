@@ -12,6 +12,7 @@ async function notifyDrivers(rideData) {
     console.error("No driver_id found for driver");
     return;
   }
+  
   const driver_id = Result.rows[0].driver_id;
 
   wss.clients.forEach((client) => {

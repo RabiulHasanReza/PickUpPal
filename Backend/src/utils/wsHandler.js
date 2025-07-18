@@ -220,7 +220,7 @@ module.exports = function handleWebSocket(wss, pool, notifyDrivers, notifyRiders
                         
                         await pool.query("INSERT INTO ratings (ride_id, rating, comment) VALUES ($1, $2, $3)", [data.ride_id, data.rating, data.comment]);
                         // Call the trigger 
-                        notifyDrivers({ type: 'rating', ride_id :data.ride_id,  rider_id: ws.rider_id, rating: data.rating } );
+                        notifyDrivers({ type: 'rating', ride_id :data.ride_id,  rider_id: ws.rider_id, rating: data.rating , comment : data.comment} );
                     }
 
 
