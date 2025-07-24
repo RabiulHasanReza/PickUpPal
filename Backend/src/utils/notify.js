@@ -37,7 +37,7 @@ async function notifyRiders(rideData) {
     return;
   }
   const rider_id = Result.rows[0].rider_id;
-  // console.log("Rider ID found:", rider_id);
+  console.log("Rider ID found:", rider_id);
 
   wss.clients.forEach((client) => {
     if (client.readyState === 1 && client.role === 'rider' && client.rider_id === rider_id) {

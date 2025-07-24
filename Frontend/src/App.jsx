@@ -15,6 +15,7 @@ import DriverRideHistoryPage from "./pages/DriverRideHistoryPage";
 import DriverEarningsPage from "./pages/DriverEarningsPage";
 import DriverSettingsPage from "./pages/DriverSettingsPage";
 import HelpPage from './pages/HelpPage';
+import DriverRidePage from './pages/DriverRidePage';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
         <Route path="/driverdashboard" element={<DriverDashboardPage />} />
         <Route path="/driversignup" element={<DriverSignUpPage />} />
         <Route path="/ride" element={<RidePage />} />
+        <Route path="/driver-ride" element={<DriverRidePage/>} />
         <Route path="*" element={<NotFoundPage />} />
         <Route path="/rider/history" element={<RideHistoryPage />} />
         <Route path="/rider/payments" element={<PaymentMethodsPage />} />

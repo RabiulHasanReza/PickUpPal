@@ -119,52 +119,49 @@ const DriverDashboardPage = () => {
     fetchDriverData();
   }, [navigate]);
 
-  useEffect(() => {
-    if (!ws) return;
+ useEffect(() => {
+  if (!ws) return;
 
-    const handleWebSocketMessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log("WebSocket message received:", data);
+  const handleWebSocketMessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      console.log("WebSocket message received:", data);
 
-        // Handle new ride requests in the exact format you're receiving
-        if (data.type === "new_ride") {
-          setRideRequests((prev) => {
-            // Generate a temporary ride_id if not provided (using timestamp)
-            const rideWithId = {
-              ...data.ride,
-              ride_id: data.ride.ride_id || Date.now(),
-              req_time: new Date().toISOString(),
-            };
-
-            // Check if this request already exists to prevent duplicates
-            const exists = prev.some(
-              (req) =>
-                req.rider_id === data.ride.rider_id &&
-                req.origin === data.ride.origin &&
-                req.destination === data.ride.destination
-            );
-
-            if (!exists) {
-              return [...prev, rideWithId];
-            }
-            return prev;
-          });
-        }
-
-        // Handle other message types as needed...
-      } catch (error) {
-        console.error("Error processing WebSocket message:", error);
+      // Handle new ride requests in backend format
+      if (data.type === "new_ride") {
+        setRideRequests((prev) => {
+          // Ensure the ride doesn't already exist
+          if (!prev.some(req => req.ride_id === data.ride.ride_id)) {
+            return [...prev, {
+              ride_id: data.ride.ride_id,
+              rider_id: data.ride.rider_id,
+              origin: data.ride.origin,
+              destination: data.ride.destination,
+              vehicle: data.ride.vehicle,
+              req_time: new Date().toISOString()
+            }];
+          }
+          return prev;
+        });
       }
-    };
 
-    ws.addEventListener("message", handleWebSocketMessage);
+      // Handle ride acceptance confirmation
+      if (data.message === "Ride accepted successfully") {
+        setCurrentRide(prev => ({
+          ...prev,
+          ride_id: data.ride_id,
+          status: "accepted"
+        }));
+      }
 
-    return () => {
-      ws.removeEventListener("message", handleWebSocketMessage);
-    };
-  }, [ws]);
+    } catch (error) {
+      console.error("Error processing WebSocket message:", error);
+    }
+  };
 
+  ws.addEventListener("message", handleWebSocketMessage);
+  return () => ws.removeEventListener("message", handleWebSocketMessage);
+}, [ws]);
   const handleLogout = () => {
     localStorage.removeItem("loggedInUser");
     navigate("/login/driver");
@@ -182,84 +179,95 @@ const DriverDashboardPage = () => {
     }
   };
 
-  const acceptRide = async (rideId) => {
-    console.log("🔄 Accepting ride with ID:", rideId);
+ // Update the acceptRide function
+const acceptRide = async (rideId) => {
+  console.log("🔄 Accepting ride with ID:", rideId);
 
-    try {
-      const rideToAccept = rideRequests.find((r) => r.ride_id === rideId);
-      if (!rideToAccept) {
-        console.error("❌ Ride not found in rideRequests:", rideId);
-        return;
-      }
-
-      console.log("✅ Ride found:", rideToAccept);
-
-      const payload = {
-        action: "accepted",
-        role: "driver",
-        ride_id: rideId,
-      };
-
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        console.log("📡 Sending WebSocket payload:", payload);
-        ws.send(JSON.stringify(payload));
-
-        ws.onmessage = (msg) => {
-          console.log("📥 WebSocket message received:", msg.data);
-
-          try {
-            const response = JSON.parse(msg.data);
-            console.log("✅ Parsed WebSocket response:", response);
-
-            if (response.message === "Ride accepted successfully") {
-              console.log("🎉 Ride accepted, updating state...");
-
-              setCurrentRide({
-                ride_id: rideId,
-                rider_id: rideToAccept.rider_id,
-                origin: rideToAccept.origin,
-                destination: rideToAccept.destination,
-                vehicle: rideToAccept.vehicle,
-                req_time: rideToAccept.req_time,
-                res_time: new Date().toISOString(),
-              });
-
-              setRideRequests((prev) =>
-                prev.filter((r) => r.ride_id !== rideId)
-              );
-            } else {
-              console.warn(
-                "⚠️ Unexpected WebSocket response message:",
-                response.message
-              );
-            }
-          } catch (e) {
-            console.error("❌ Failed to parse WebSocket message:", e);
-          }
-        };
-      } else {
-        console.error("❌ WebSocket is not connected.");
-        alert("WebSocket is not connected. Please try again.");
-      }
-    } catch (error) {
-      console.error("🔥 Unexpected error in acceptRide:", error);
-      alert("Something went wrong. Please try again.");
+  try {
+    const ride = rideRequests.find((r) => r.ride_id === rideId);
+    if (!ride) {
+      console.error("❌ Ride not found in rideRequests:", rideId);
+      return;
     }
-  };
-  const declineRide = (rideId) => {
-  if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
-  const declineMessage = {
-    role: "driver",
-    action: "decline",
-    driver_id: user.id, // Your driver's ID
-    ride_id: rideId
-  };
+    console.log("✅ Ride found:", ride);
 
-  ws.send(JSON.stringify(declineMessage));
-   // Immediately remove the ride from local state
-  setRideRequests(prev => prev.filter(ride => ride.ride_id !== rideId));
+    const payload = {
+      action: "accepted",
+      role: "driver",
+      ride_id: rideId,
+    };
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      console.log("📡 Sending WebSocket payload:", payload);
+      ws.send(JSON.stringify(payload));
+
+      ws.onmessage = (msg) => {
+        console.log("📥 WebSocket message received:", msg.data);
+
+        try {
+          const response = JSON.parse(msg.data);
+          console.log("✅ Parsed WebSocket response:", response);
+
+          if (response.message === "Ride accepted successfully") {
+            console.log("🎉 Ride accepted, updating state...");
+
+            setCurrentRide({
+              ride_id: rideId, // Using backend-provided ride_id
+              rider_id: ride.rider_id,
+              origin: ride.origin,
+              destination: ride.destination,
+              vehicle: ride.vehicle,
+              req_time: ride.req_time,
+              res_time: new Date().toISOString(),
+            });
+
+            setRideRequests((prev) =>
+              prev.filter((r) => r.ride_id !== rideId)
+            );
+
+            navigate("/driver-ride", {
+              state: {
+                rideInfo: {
+                  ride_id: rideId, // Using backend-provided ride_id
+                  origin: ride.origin,
+                  destination: ride.destination,
+                },
+              },
+            });
+          } else {
+            console.warn(
+              "⚠️ Unexpected WebSocket response message:",
+              response.message
+            );
+          }
+        } catch (e) {
+          console.error("❌ Failed to parse WebSocket message:", e);
+        }
+      };
+    } else {
+      console.error("❌ WebSocket is not connected.");
+      alert("WebSocket is not connected. Please try again.");
+    }
+  } catch (error) {
+    console.error("🔥 Unexpected error in acceptRide:", error);
+    alert("Something went wrong. Please try again.");
+  }
 };
+  const declineRide = (rideId) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    const declineMessage = {
+      role: "driver",
+      action: "decline",
+      driver_id: user.id, // Your driver's ID
+      ride_id: rideId,
+    };
+
+    ws.send(JSON.stringify(declineMessage));
+    // Immediately remove the ride from local state
+    setRideRequests((prev) => prev.filter((ride) => ride.ride_id !== rideId));
+  };
 
   const completeRide = async () => {
     try {
@@ -606,7 +614,24 @@ const DriverDashboardPage = () => {
                           </div>
                           <div className="flex gap-2">
                             <button
-                              onClick={() => acceptRide(ride.ride_id)}
+                              onClick={() => {
+                                acceptRide(ride.ride_id);
+                                navigate("/driver-ride", {
+                                  state: {
+                                    rideInfo: {
+                                      ride_id: ride.ride_id,
+                                      origin: ride.origin,
+                                      destination: ride.destination,
+                                      // start_latitude:
+                                      //   ride.start_latitude, // Make sure these are included in your ride request
+                                      // start_longitude:
+                                      //   ride.start_longitude,
+                                      // end_latitude: ride.end_latitude,
+                                      // end_longitude: ride.end_longitude,
+                                    },
+                                  },
+                                });
+                              }}
                               disabled={
                                 driverStatus !== "online" ||
                                 !ws ||

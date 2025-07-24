@@ -154,7 +154,8 @@ router.post("/login/rider", async (req, res) => {
 
     if (oldRider.rows.length > 0) {
       // res.json("Successfully logged in as a Rider")
-      res.json(oldUser.rows[0]);
+      res.json({ ...oldUser.rows[0], role: 'rider' });
+
     } else {
       return res
         .status(400)
@@ -182,7 +183,8 @@ router.post("/login/driver", async (req, res) => {
 
     if (oldDriver.rows.length > 0) {
       // res.json("Successfully logged in as a Rider")
-      res.json(oldUser.rows[0]);
+      res.json({ ...oldUser.rows[0], role: 'driver' });
+
     } else {
       return res
         .status(400)

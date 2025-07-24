@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { FaGlobe, FaQuestionCircle, FaUserCircle } from 'react-icons/fa';
+import React, { useState, useEffect } from "react";
+import { FaGlobe, FaQuestionCircle, FaUserCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import './Header.css';
+import "./Header.css";
 
 function DashboardHeader() {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -9,10 +9,11 @@ function DashboardHeader() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem('loggedInUser'));
+    const storedUser = JSON.parse(localStorage.getItem("loggedInUser"));
     if (storedUser) {
       setUser(storedUser);
     }
+    
   }, []);
 
   const toggleDropdown = () => setShowDropdown((prev) => !prev);
@@ -33,7 +34,7 @@ function DashboardHeader() {
             {/* Help */}
             <div className="flex items-center gap-1 cursor-pointer hover:text-gray-200 text-sm">
               <FaQuestionCircle />
-              <span onClick={() =>navigate("/help")}>Help</span>
+              <span onClick={() => navigate("/help")}>Help</span>
             </div>
 
             {/* Profile */}
@@ -43,27 +44,27 @@ function DashboardHeader() {
                 className="flex items-center gap-2 bg-[#334155] px-3 py-1.5 rounded-full text-sm hover:bg-[#2b3a4c] transition"
               >
                 <FaUserCircle />
-                <span className="truncate max-w-[100px]">{user?.name || 'User'}</span>
+                <span className="truncate max-w-[100px]">
+                  {user?.name || "User"}
+                </span>
               </button>
 
               {showDropdown && (
                 <div className="absolute right-0 mt-2 w-40 rounded shadow-lg py-1 z-50">
                   <button
                     onClick={() => {
-                      localStorage.removeItem('loggedInUser');
-                      window.location.href = '/login';
+                      localStorage.removeItem("loggedInUser");
+                      window.location.href = "/login";
                     }}
                     className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                   >
                     Log Out
                   </button>
                   <button
-                   
                     onClick={() => {
-                      if (user && user.role === 'driver') {
+                      if (user.role?.toLowerCase() === "driver") {
                         navigate("/driver/settings");
-                      }
-                      else{
+                      } else {
                         navigate("/rider/settings");
                       }
                     }}
@@ -81,8 +82,10 @@ function DashboardHeader() {
       {/* Welcome Bar */}
       {user && (
         <div className="bg-[#5a8bb9] text-white text-sm px-4 py-2 shadow-sm text-center sm:text-left">
-          Welcome back, <span className="font-semibold">{user.name}</span>!{' '}
-          {user.role === 'rider' ? 'Wanna go somewhere?' : 'Wanna pick someone up?'}
+          Welcome back, <span className="font-semibold">{user.name}</span>!{" "}
+          {user.role?.toLowerCase() === "rider"
+            ? "Wanna go somewhere?"
+            : "Wanna pick someone up?"}
         </div>
       )}
     </>
