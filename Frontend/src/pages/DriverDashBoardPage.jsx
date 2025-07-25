@@ -119,49 +119,51 @@ const DriverDashboardPage = () => {
     fetchDriverData();
   }, [navigate]);
 
- useEffect(() => {
-  if (!ws) return;
+  useEffect(() => {
+    if (!ws) return;
 
-  const handleWebSocketMessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      console.log("WebSocket message received:", data);
+    const handleWebSocketMessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("WebSocket message received:", data);
 
-      // Handle new ride requests in backend format
-      if (data.type === "new_ride") {
-        setRideRequests((prev) => {
-          // Ensure the ride doesn't already exist
-          if (!prev.some(req => req.ride_id === data.ride.ride_id)) {
-            return [...prev, {
-              ride_id: data.ride.ride_id,
-              rider_id: data.ride.rider_id,
-              origin: data.ride.origin,
-              destination: data.ride.destination,
-              vehicle: data.ride.vehicle,
-              req_time: new Date().toISOString()
-            }];
-          }
-          return prev;
-        });
+        // Handle new ride requests in backend format
+        if (data.type === "new_ride") {
+          setRideRequests((prev) => {
+            // Ensure the ride doesn't already exist
+            if (!prev.some((req) => req.ride_id === data.ride.ride_id)) {
+              return [
+                ...prev,
+                {
+                  ride_id: data.ride.ride_id,
+                  rider_id: data.ride.rider_id,
+                  origin: data.ride.origin,
+                  destination: data.ride.destination,
+                  vehicle: data.ride.vehicle,
+                  req_time: new Date().toISOString(),
+                },
+              ];
+            }
+            return prev;
+          });
+        }
+
+        // Handle ride acceptance confirmation
+        if (data.message === "Ride accepted successfully") {
+          setCurrentRide((prev) => ({
+            ...prev,
+            ride_id: data.ride_id,
+            status: "accepted",
+          }));
+        }
+      } catch (error) {
+        console.error("Error processing WebSocket message:", error);
       }
+    };
 
-      // Handle ride acceptance confirmation
-      if (data.message === "Ride accepted successfully") {
-        setCurrentRide(prev => ({
-          ...prev,
-          ride_id: data.ride_id,
-          status: "accepted"
-        }));
-      }
-
-    } catch (error) {
-      console.error("Error processing WebSocket message:", error);
-    }
-  };
-
-  ws.addEventListener("message", handleWebSocketMessage);
-  return () => ws.removeEventListener("message", handleWebSocketMessage);
-}, [ws]);
+    ws.addEventListener("message", handleWebSocketMessage);
+    return () => ws.removeEventListener("message", handleWebSocketMessage);
+  }, [ws]);
   const handleLogout = () => {
     localStorage.removeItem("loggedInUser");
     navigate("/login/driver");
@@ -179,81 +181,81 @@ const DriverDashboardPage = () => {
     }
   };
 
- // Update the acceptRide function
-const acceptRide = async (rideId) => {
-  console.log("🔄 Accepting ride with ID:", rideId);
+  // Update the acceptRide function
+  const acceptRide = async (rideId) => {
+    console.log("🔄 Accepting ride with ID:", rideId);
 
-  try {
-    const ride = rideRequests.find((r) => r.ride_id === rideId);
-    if (!ride) {
-      console.error("❌ Ride not found in rideRequests:", rideId);
-      return;
-    }
+    try {
+      const ride = rideRequests.find((r) => r.ride_id === rideId);
+      if (!ride) {
+        console.error("❌ Ride not found in rideRequests:", rideId);
+        return;
+      }
 
-    console.log("✅ Ride found:", ride);
+      console.log("✅ Ride found:", ride);
 
-    const payload = {
-      action: "accepted",
-      role: "driver",
-      ride_id: rideId,
-    };
-
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      console.log("📡 Sending WebSocket payload:", payload);
-      ws.send(JSON.stringify(payload));
-
-      ws.onmessage = (msg) => {
-        console.log("📥 WebSocket message received:", msg.data);
-
-        try {
-          const response = JSON.parse(msg.data);
-          console.log("✅ Parsed WebSocket response:", response);
-
-          if (response.message === "Ride accepted successfully") {
-            console.log("🎉 Ride accepted, updating state...");
-
-            setCurrentRide({
-              ride_id: rideId, // Using backend-provided ride_id
-              rider_id: ride.rider_id,
-              origin: ride.origin,
-              destination: ride.destination,
-              vehicle: ride.vehicle,
-              req_time: ride.req_time,
-              res_time: new Date().toISOString(),
-            });
-
-            setRideRequests((prev) =>
-              prev.filter((r) => r.ride_id !== rideId)
-            );
-
-            navigate("/driver-ride", {
-              state: {
-                rideInfo: {
-                  ride_id: rideId, // Using backend-provided ride_id
-                  origin: ride.origin,
-                  destination: ride.destination,
-                },
-              },
-            });
-          } else {
-            console.warn(
-              "⚠️ Unexpected WebSocket response message:",
-              response.message
-            );
-          }
-        } catch (e) {
-          console.error("❌ Failed to parse WebSocket message:", e);
-        }
+      const payload = {
+        action: "accepted",
+        role: "driver",
+        ride_id: rideId,
       };
-    } else {
-      console.error("❌ WebSocket is not connected.");
-      alert("WebSocket is not connected. Please try again.");
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        console.log("📡 Sending WebSocket payload:", payload);
+        ws.send(JSON.stringify(payload));
+
+        ws.onmessage = (msg) => {
+          console.log("📥 WebSocket message received:", msg.data);
+
+          try {
+            const response = JSON.parse(msg.data);
+            console.log("✅ Parsed WebSocket response:", response);
+
+            if (response.message === "Ride accepted successfully") {
+              console.log("🎉 Ride accepted, updating state...");
+
+              setCurrentRide({
+                ride_id: rideId, // Using backend-provided ride_id
+                rider_id: ride.rider_id,
+                origin: ride.origin,
+                destination: ride.destination,
+                vehicle: ride.vehicle,
+                req_time: ride.req_time,
+                res_time: new Date().toISOString(),
+              });
+
+              setRideRequests((prev) =>
+                prev.filter((r) => r.ride_id !== rideId)
+              );
+
+              navigate("/driver-ride", {
+                state: {
+                  rideInfo: {
+                    ride_id: rideId, // Using backend-provided ride_id
+                    origin: ride.origin,
+                    destination: ride.destination,
+                  },
+                },
+              });
+            } else {
+              console.warn(
+                "⚠️ Unexpected WebSocket response message:",
+                response.message
+              );
+            }
+          } catch (e) {
+            console.error("❌ Failed to parse WebSocket message:", e);
+          }
+        };
+      } else {
+        console.error("❌ WebSocket is not connected.");
+        alert("WebSocket is not connected. Please try again.");
+      }
+    } catch (error) {
+      console.error("🔥 Unexpected error in acceptRide:", error);
+      alert("Something went wrong. Please try again.");
     }
-  } catch (error) {
-    console.error("🔥 Unexpected error in acceptRide:", error);
-    alert("Something went wrong. Please try again.");
-  }
-};
+  };
   const declineRide = (rideId) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
@@ -622,12 +624,10 @@ const acceptRide = async (rideId) => {
                                       ride_id: ride.ride_id,
                                       origin: ride.origin,
                                       destination: ride.destination,
-                                      // start_latitude:
-                                      //   ride.start_latitude, // Make sure these are included in your ride request
-                                      // start_longitude:
-                                      //   ride.start_longitude,
-                                      // end_latitude: ride.end_latitude,
-                                      // end_longitude: ride.end_longitude,
+                                      start_latitude: ride.start_latitude,
+                                      start_longitude: ride.start_longitude,
+                                      end_latitude: ride.end_latitude,
+                                      end_longitude: ride.end_longitude,
                                     },
                                   },
                                 });

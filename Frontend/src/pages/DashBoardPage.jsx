@@ -71,7 +71,10 @@ const DashboardPage = () => {
   const [showArrivalNotification, setShowArrivalNotification] = useState(false);
   const [activeRide, setActiveRide] = useState(null);
   const [showRatingForm, setShowRatingForm] = useState(false);
-
+  const [simulatedDriverPosition, setSimulatedDriverPosition] = useState(null);
+  const [simulationInterval, setSimulationInterval] = useState(null);
+  const [simulationProgress, setSimulationProgress] = useState(0);
+  const [paymentStatus, setPaymentStatus] = useState(null);
   const navigate = useNavigate();
   const startInputRef = useRef();
   const endInputRef = useRef();
@@ -100,6 +103,91 @@ const DashboardPage = () => {
     iconAnchor: [14, 28],
     popupAnchor: [0, -28],
   });
+
+  // Simulates driver coming to pickup
+  const simulateToPickup = (pickupCoords) => {
+    // Clear any existing simulation
+    if (simulationInterval) clearInterval(simulationInterval);
+
+    // Start position 1km away
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 0.01;
+    const startLat = pickupCoords.lat + distance * Math.cos(angle);
+    const startLng = pickupCoords.lng + distance * Math.sin(angle);
+
+    setSimulatedDriverPosition({ lat: startLat, lng: startLng });
+    setSimulationProgress(0);
+
+    const interval = setInterval(() => {
+      setSimulationProgress((prev) => {
+        const newProgress = Math.min(prev + 1, 100);
+        const ratio = newProgress / 100;
+
+        // Update position
+        const newLat = startLat + (pickupCoords.lat - startLat) * ratio;
+        const newLng = startLng + (pickupCoords.lng - startLng) * ratio;
+
+        setSimulatedDriverPosition({ lat: newLat, lng: newLng });
+        setDriverInfo((d) => ({
+          ...d,
+          currentLatitude: newLat,
+          currentLongitude: newLng,
+        }));
+
+        // When reached pickup
+        if (newProgress === 100) {
+          clearInterval(interval);
+          setRideStatus("driver_arrived");
+          setShowArrivalNotification(true);
+          setTimeout(() => {
+            setShowArrivalNotification(false);
+            simulateToDestination(pickupCoords, endCoords); // Start next phase
+          }, 3000); // 3 second wait at pickup
+        }
+
+        return newProgress;
+      });
+    }, 200);
+    setSimulationInterval(interval);
+  };
+
+  // Simulates trip to destination
+  const simulateToDestination = (startCoords, endCoords) => {
+    if (simulationInterval) clearInterval(simulationInterval);
+
+    setRideStatus("trip_in_progress");
+    setSimulationProgress(0);
+
+    const interval = setInterval(() => {
+      setSimulationProgress((prev) => {
+        const newProgress = Math.min(prev + 1, 100);
+        const ratio = newProgress / 100;
+
+        // Update position along route
+        const newLat =
+          startCoords.lat + (endCoords.lat - startCoords.lat) * ratio;
+        const newLng =
+          startCoords.lng + (endCoords.lng - startCoords.lng) * ratio;
+
+        setSimulatedDriverPosition({ lat: newLat, lng: newLng });
+        setDriverInfo((d) => ({
+          ...d,
+          currentLatitude: newLat,
+          currentLongitude: newLng,
+        }));
+
+        // When reached destination
+        if (newProgress === 100) {
+          clearInterval(interval);
+          setRideStatus("trip_completed");
+          setShowRatingForm(true);
+        }
+
+        return newProgress;
+      });
+    }, 200);
+    setSimulationInterval(interval);
+  };
 
   useEffect(() => {
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
@@ -299,77 +387,77 @@ const DashboardPage = () => {
       document.documentElement.classList.remove("dark");
     }
   };
-const handleBookRide = (e) => {
-  e.preventDefault();
-  setError("");
-  setSubmitting(true);
+  const handleBookRide = (e) => {
+    e.preventDefault();
+    setError("");
+    setSubmitting(true);
 
-  const rider_id = user.id;
-  if (!rider_id) {
-    setError("Invalid token. Cannot find user ID.");
-    setSubmitting(false);
-    return;
-  }
+    const rider_id = user.id;
+    if (!rider_id) {
+      setError("Invalid token. Cannot find user ID.");
+      setSubmitting(false);
+      return;
+    }
 
-  const rideRequest = {
-    role: "rider",
-    action: "ride_request",
-    rider_id,
-    origin: pickupLocation,
-    destination: destination,
-    start_latitude: pickupCoords?.lat,
-    start_longitude: pickupCoords?.lng,
-    end_latitude: endCoords?.lat,
-    end_longitude: endCoords?.lng,
-  };
-
-  try {
-    ws.send(JSON.stringify(rideRequest));
-
-    ws.onmessage = (msg) => {
-      const response = JSON.parse(msg.data);
-
-      if (response.fares) {
-        const vehicleSelection = {
-          role: "rider",
-          action: "select_vehicle",
-          rider_id,
-          origin: pickupLocation,
-          destination: destination,
-          vehicle: "bike", // or let user select
-          fare: response.fares.bike // or selected vehicle fare
-        };
-        ws.send(JSON.stringify(vehicleSelection));
-      } else if (response.status === "accepted") {
-        // Now we expect the backend to provide ride_id
-        navigate(`/ride`, {
-          state: {
-            driverInfo: {
-              driver_id: response.driver_id,
-              driver_name: response.driver_name,
-              driver_phone: response.driver_phone,
-              model: response.model,
-              license_plate: response.license_plate,
-              color: response.color,
-              rideId: response.ride_id // Use backend-provided ride_id
-            },
-            pickupLocation,
-            destination,
-            pickupCoords,
-            endCoords
-          }
-        });
-      } else if (response.status === "no_driver_found") {
-        setError("No drivers available right now.");
-        setSubmitting(false);
-      }
+    const rideRequest = {
+      role: "rider",
+      action: "ride_request",
+      rider_id,
+      origin: pickupLocation,
+      destination: destination,
+      start_latitude: pickupCoords?.lat,
+      start_longitude: pickupCoords?.lng,
+      end_latitude: endCoords?.lat,
+      end_longitude: endCoords?.lng,
     };
-  } catch (err) {
-    console.error("WebSocket error:", err);
-    setError("WebSocket communication failed.");
-    setSubmitting(false);
-  }
-};
+
+    try {
+      ws.send(JSON.stringify(rideRequest));
+
+      ws.onmessage = (msg) => {
+        const response = JSON.parse(msg.data);
+
+        if (response.fares) {
+          const vehicleSelection = {
+            role: "rider",
+            action: "select_vehicle",
+            rider_id,
+            origin: pickupLocation,
+            destination: destination,
+            vehicle: "bike", // or let user select
+            fare: response.fares.bike, // or selected vehicle fare
+          };
+          ws.send(JSON.stringify(vehicleSelection));
+        } else if (response.status === "accepted") {
+          // Now we expect the backend to provide ride_id
+          navigate(`/ride`, {
+            state: {
+              driverInfo: {
+                driver_id: response.driver_id,
+                driver_name: response.driver_name,
+                driver_phone: response.driver_phone,
+                model: response.model,
+                license_plate: response.license_plate,
+                color: response.color,
+                rideId: response.ride_id, // Use backend-provided ride_id
+              },
+              pickupLocation,
+              destination,
+              pickupCoords,
+              endCoords,
+            },
+          });
+        } else if (response.status === "no_driver_found") {
+          setError("No drivers available right now.");
+          setSubmitting(false);
+        }
+      };
+    } catch (err) {
+      console.error("WebSocket error:", err);
+      setError("WebSocket communication failed.");
+      setSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (!ws) return;
@@ -406,6 +494,11 @@ const handleBookRide = (e) => {
           setActiveRide(newActiveRide);
           setRideStatus("driver_arriving");
 
+          // Start arrival simulation
+          if (pickupCoords) {
+            simulateToPickup(pickupCoords);
+          }
+
           localStorage.setItem(
             "currentRide",
             JSON.stringify({
@@ -415,14 +508,34 @@ const handleBookRide = (e) => {
             })
           );
         }
-        // Handle driver arrival
-        else if (data.status === "Arrived") {
+        // Handle trip start (triggered by driver clicking Start Trip)
+        else if (
+          data.status === "trip_in_progress" &&
+          data.simulate_destination
+        ) {
+          setRideStatus("trip_in_progress");
+          // Dashboard can show appropriate UI for trip in progress
+
+          // Update localStorage
+          const currentRide =
+            JSON.parse(localStorage.getItem("currentRide")) || {};
+          localStorage.setItem(
+            "currentRide",
+            JSON.stringify({
+              ...currentRide,
+              rideStatus: "trip_in_progress",
+            })
+          );
+        }
+        // Handle driver arrival notification
+        else if (data.status === "driver_arrived") {
           setRideStatus("driver_arrived");
           setShowArrivalNotification(true);
           setTimeout(() => setShowArrivalNotification(false), 5000);
 
           // Update localStorage
-          const currentRide = JSON.parse(localStorage.getItem("currentRide")) || {};
+          const currentRide =
+            JSON.parse(localStorage.getItem("currentRide")) || {};
           localStorage.setItem(
             "currentRide",
             JSON.stringify({
@@ -437,7 +550,8 @@ const handleBookRide = (e) => {
           setShowRatingForm(true);
 
           // Update localStorage
-          const currentRide = JSON.parse(localStorage.getItem("currentRide")) || {};
+          const currentRide =
+            JSON.parse(localStorage.getItem("currentRide")) || {};
           localStorage.setItem(
             "currentRide",
             JSON.stringify({
@@ -460,7 +574,14 @@ const handleBookRide = (e) => {
     return () => {
       ws.removeEventListener("message", handleMessage);
     };
-  }, [ws, pickupLocation, destination, pickupCoords, endCoords]);
+  }, [
+    ws,
+    pickupLocation,
+    destination,
+    pickupCoords,
+    endCoords,
+    simulateToPickup,
+  ]);
 
   const handleRatingSubmit = (e) => {
     e.preventDefault();
@@ -587,7 +708,7 @@ const handleBookRide = (e) => {
               </div>
 
               {/* Ride Information */}
-              <div className="bg-blue-400 dark:bg-blue-600 rounded-lg shadow-md p-6 mb-6">
+              <div className="bg-[#59a8c5] dark:bg-[#456976] rounded-lg shadow-md p-6 mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -666,7 +787,10 @@ const handleBookRide = (e) => {
               {/* Map */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6 h-64">
                 <MapContainer
-                  center={[activeRide.start_latitude, activeRide.start_longitude]}
+                  center={[
+                    activeRide.start_latitude,
+                    activeRide.start_longitude,
+                  ]}
                   zoom={13}
                   style={{ height: "100%", width: "100%" }}
                 >
@@ -676,27 +800,37 @@ const handleBookRide = (e) => {
                   />
 
                   <Marker
-                    position={[activeRide.start_latitude, activeRide.start_longitude]}
+                    position={[
+                      activeRide.start_latitude,
+                      activeRide.start_longitude,
+                    ]}
                     icon={startIcon}
                   >
                     <Popup>Pickup Location</Popup>
                   </Marker>
 
                   <Marker
-                    position={[activeRide.end_latitude, activeRide.end_longitude]}
+                    position={[
+                      activeRide.end_latitude,
+                      activeRide.end_longitude,
+                    ]}
                     icon={endIcon}
                   >
                     <Popup>Destination</Popup>
                   </Marker>
 
-                  {driverInfo.currentLatitude && driverInfo.currentLongitude && (
-                    <Marker
-                      position={[driverInfo.currentLatitude, driverInfo.currentLongitude]}
-                      icon={driverIcon}
-                    >
-                      <Popup>Your Driver</Popup>
-                    </Marker>
-                  )}
+                  {driverInfo.currentLatitude &&
+                    driverInfo.currentLongitude && (
+                      <Marker
+                        position={[
+                          driverInfo.currentLatitude,
+                          driverInfo.currentLongitude,
+                        ]}
+                        icon={driverIcon}
+                      >
+                        <Popup>Your Driver</Popup>
+                      </Marker>
+                    )}
 
                   {routeCoords.length > 0 && (
                     <>
@@ -706,6 +840,23 @@ const handleBookRide = (e) => {
                       />
                       <FlyToRoute routeCoords={routeCoords} />
                     </>
+                  )}
+
+                  {simulatedDriverPosition && (
+                    <Marker
+                      position={[
+                        simulatedDriverPosition.lat,
+                        simulatedDriverPosition.lng,
+                      ]}
+                      icon={driverIcon}
+                    >
+                      <Popup>
+                        {rideStatus === "driver_arriving" && "Coming to pickup"}
+                        {rideStatus === "driver_arrived" && "Waiting for you"}
+                        {rideStatus === "trip_in_progress" &&
+                          `Going to destination (${simulationProgress}%)`}
+                      </Popup>
+                    </Marker>
                   )}
                 </MapContainer>
               </div>
@@ -769,6 +920,66 @@ const handleBookRide = (e) => {
               )}
             </div>
           )}
+          {rideStatus === "trip_completed" && showRatingForm && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+                  <h3 className="text-lg font-semibold mb-4 dark:text-white">
+                    Trip Completed - Make Payment
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700 dark:text-gray-300">
+                        Trip Fare:
+                      </span>
+                      <span className="font-bold text-lg text-blue-600 dark:text-blue-300">
+                        ${((distance / 1000) * 1.5).toFixed(2)}{" "}
+                        {/* Example fare calculation */}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700 dark:text-gray-300">
+                        Payment Method:
+                      </span>
+                      <span className="font-medium">Credit Card ****4242</span>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        // In a real app, this would connect to a payment processor
+                        setPaymentStatus("processing");
+                        setTimeout(() => {
+                          setPaymentStatus("completed");
+                          setShowRatingForm(true);
+                        }, 2000);
+                      }}
+                      disabled={
+                        paymentStatus === "processing" ||
+                        paymentStatus === "completed"
+                      }
+                      className={`w-full py-3 rounded-lg font-medium text-white transition-colors duration-300 ${
+                        paymentStatus === "processing"
+                          ? "bg-yellow-500 hover:bg-yellow-600"
+                          : paymentStatus === "completed"
+                            ? "bg-green-500 hover:bg-green-600"
+                            : "bg-blue-600 hover:bg-blue-700"
+                      }`}
+                    >
+                      {paymentStatus === "processing"
+                        ? "Processing Payment..."
+                        : paymentStatus === "completed"
+                          ? "Payment Successful!"
+                          : "Pay Now"}
+                    </button>
+
+                    {paymentStatus === "completed" && (
+                      <div className="flex items-center justify-center text-green-600 dark:text-green-400">
+                        <FaCheckCircle className="mr-2" />
+                        <span>Payment processed successfully</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
           {/* Search Bar */}
           {!activeRide && (
@@ -836,7 +1047,9 @@ const handleBookRide = (e) => {
                           <div
                             key={suggestion.place_id}
                             className="px-4 py-2 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer"
-                            onMouseDown={() => selectStartSuggestion(suggestion)}
+                            onMouseDown={() =>
+                              selectStartSuggestion(suggestion)
+                            }
                           >
                             {suggestion.display_name}
                           </div>
@@ -919,7 +1132,8 @@ const handleBookRide = (e) => {
                           </>
                         )}
                         {nearbyDrivers.map((driver) =>
-                          driver.current_latitude && driver.current_longitude ? (
+                          driver.current_latitude &&
+                          driver.current_longitude ? (
                             <Marker
                               key={driver.driver_id}
                               position={[
