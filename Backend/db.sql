@@ -18,6 +18,7 @@ CREATE TABLE drivers(
     avg_rating REAL, 
     stats VARCHAR(255)
 );
+
 CREATE TABLE vehicles (
     driver_id INTEGER REFERENCES drivers(driver_id),
 
@@ -50,8 +51,33 @@ CREATE TABLE rides(
      end_time TIMESTAMP,
      status VARCHAR(50)
 );
+
 CREATE TABLE ratings(
     ride_id INTEGER REFERENCES ride_req(ride_id),
-    rating INTEGER ,  
-    comment VARCHAR(50)
+    rating REAL,  
+    comment VARCHAR(50),
+    role TEXT CHECK (role IN ('rider', 'driver')),
+    CONSTRAINT unique_ride_role UNIQUE (ride_id, role)
+);
+
+CREATE TABLE IF NOT EXISTS user_history (
+    user_id INTEGER PRIMARY KEY,
+    role TEXT CHECK (role IN ('rider', 'driver')),
+    total_rides INTEGER NOT NULL DEFAULT 0,
+    total_fare NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    last_trip_time TIMESTAMP,
+    avg_rating REAL DEFAULT 0
+);
+
+
+
+
+
+
+-- Have to these tables : 
+create TABLE driver_location(
+    driver_id INTEGER REFERENCES drivers(driver_id),
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
