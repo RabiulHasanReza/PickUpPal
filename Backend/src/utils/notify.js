@@ -95,6 +95,25 @@ function markDriverSeenRider(driverId, riderId) {
   console.log(`Driver ${driverId} has now seen rider ${riderId}`);
 }
 
+function markDriverNotSeenRider(driverId, riderId) {
+  // If the driver doesn't exist in the map, nothing to do
+  if (!driverRiderHistory.has(driverId)) {
+    return;
+  }
+
+  const riderSet = driverRiderHistory.get(driverId);
+
+  // Remove the rider from the set
+  riderSet.delete(riderId);
+
+  console.log(`Driver ${driverId} is now marked as NOT having seen rider ${riderId}`);
+
+  // Optional: if the set becomes empty, remove the driver from the map
+  if (riderSet.size === 0) {
+    driverRiderHistory.delete(driverId);
+  }
+}
+
 const processingDrivers = new Set();
 
 
@@ -189,4 +208,4 @@ async function notifyDriversSequentially(availableDrivers, rideInfo, onAccept, o
   }
 }
 
-module.exports = { setWss, notifyDrivers, notifyRiders, getDistance, hasDriverSeenRider, notifyDriversSequentially };
+module.exports = { setWss, notifyDrivers, notifyRiders, getDistance, hasDriverSeenRider, notifyDriversSequentially ,markDriverNotSeenRider};

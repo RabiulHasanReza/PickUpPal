@@ -4,6 +4,7 @@ const {
     getDistance,
     hasDriverSeenRider,
     notifyDriversSequentially,
+    markDriverNotSeenRider
 } = require("./notify");
 
 const drivers = new Map(); // driver_id -> { ws, cur_location, available }
@@ -23,29 +24,44 @@ module.exports = function handleWebSocket(
                 if (data.role === "driver") {
                     if (data.action === "register") {
                         ws.role = "driver";
-                        ws.driver_id = data.driver_id;   
-                        const vehicleRes = await pool.query(
-                            "SELECT vehicle FROM vehicles WHERE driver_id = $1",
-                            [ws.driver_id]
-                        );
-                        ws.vehicle = vehicleRes.rows[0]?.vehicle;
+                        ws.driver_id = data.driver_id;
+                        if (drivers.has(ws.driver_id)) {                               /// If a existing driver comes online again
+                            // Driver is already registered — just go online
+                            drivers.get(ws.driver_id).available = true;
+                            ws.send(JSON.stringify({ message: "You are now online again" }));
+                        } else {
+                            const vehicleRes = await pool.query(
+                                "SELECT vehicle FROM vehicles WHERE driver_id = $1",
+                                [ws.driver_id]
+                            );
+                            ws.vehicle = vehicleRes.rows[0]?.vehicle;
 
-                        // ws.cur_location = indx;
-                        // indx++;
-                        // ws.cur_location = data.cur_location;                       // **** Have to fetch this from the database _ latitude and longitude
-                        ws.cur_location = 2;
+                            // ws.cur_location = indx;
+                            // indx++;
+                            // ws.cur_location = data.cur_location;                       // **** Have to fetch this from the database _ latitude and longitude
+                            ws.cur_location = 2;
 
-                        drivers.set(ws.driver_id, {
-                            ws,
-                            cur_location: ws.cur_location,
-                            vehicle: ws.vehicle,
-                            available: true,
-                        });
-                        console.log(`Driver registered: ${ws.driver_id}`);
-                        ws.send(
-                            JSON.stringify({ message: "Driver registered successfully" })
-                        );
-                    } else if (data.action === "Start Trip") {
+                            drivers.set(ws.driver_id, {
+                                ws,
+                                cur_location: ws.cur_location,
+                                vehicle: ws.vehicle,
+                                available: true,
+                            });
+                            console.log(`Driver registered: ${ws.driver_id}`);
+                            ws.send(
+                                JSON.stringify({ message: "Driver registered successfully" })
+                            );
+                        }
+                    }
+                    else if (data.action === "Go Offline") {
+                        console.log(`Driver ${data.driver_id} is now offline`);
+
+                        if (drivers.has(data.driver_id)) {
+                            drivers.get(data.driver_id).available = false;
+                            ws.send(JSON.stringify({ message: "You are now offline" }));
+                        }
+                    }
+                    else if (data.action === "Start Trip") {
                         console.log(`Driver ${ws.driver_id} starts the ride ${data.ride_id}`);
 
                         // const Result = await pool.query(
@@ -79,10 +95,11 @@ module.exports = function handleWebSocket(
                         console.log(`Driver ${ws.driver_id} ended the trip`);
 
                         const result = await pool.query(
-                            "SELECT fare FROM rides WHERE ride_id = $1",
+                            "SELECT fare, rider_id FROM rides WHERE ride_id = $1",
                             [data.ride_id]
                         );
                         const fare = result.rows[0]?.fare || 0;
+                        const rider_id = result.rows[0]?.rider_id;
 
                         await pool.query(
                             "UPDATE rides SET  end_time =CURRENT_TIMESTAMP, status = 'completed' WHERE ride_id = $1",
@@ -100,22 +117,25 @@ module.exports = function handleWebSocket(
                         if (drivers.has(ws.driver_id)) {
                             drivers.get(ws.driver_id).available = true;
                         }
+                        if (ws.driver_id && rider_id) {
+                            markDriverNotSeenRider(ws.driver_id, rider_id);
+                        }
                     }
                     else if (data.action === "rider_rating") {
                         //   const { ride_id } = data;
                         console.log(
                             `Driver ${ws.driver_id} rated the rider: ${data.rating}`
                         );
-                       
+
 
                         await pool.query(
                             "INSERT INTO ratings (ride_id, rating, comment,role) VALUES ($1, $2, $3,'rider')",
                             [data.ride_id, data.rating, data.comment]
                         );
-                       
-                         ws.send(JSON.stringify({ message: `rated the ride successfully` }));
+
+                        ws.send(JSON.stringify({ message: `rated the ride successfully` }));
                         // Call the trigger
-                        
+
                         notifyRiders({
                             type: "rating",
                             ride_id: data.ride_id,
@@ -125,7 +145,7 @@ module.exports = function handleWebSocket(
                         });
                     }
                 }
-// rider actions
+ // rider actions
                 else if (data.role === "rider") {
                     // if (data.action === 'register') {
                     //     ws.role = 'rider';
@@ -184,7 +204,7 @@ module.exports = function handleWebSocket(
                         ws.ride_id = rideResult.rows[0].ride_id;
 
                         // Prepare ride info
-                        const riderLocation = 1; 
+                        const riderLocation = 1;
                         // const riderLocation = data.origin;                // ****** have to fix this
                         const currentRiderId = ws.rider_id;
 
@@ -275,7 +295,7 @@ module.exports = function handleWebSocket(
                                         console.error("No data found for driver");
                                         return;
                                     }
-                                    const { 
+                                    const {
                                         driver_name,
                                         driver_phone,
                                         model,
@@ -319,16 +339,16 @@ module.exports = function handleWebSocket(
                         console.log(
                             `Rider ${ws.rider_id} rated the driver: ${data.rating}`
                         );
-                       
+
 
                         await pool.query(
                             "INSERT INTO ratings (ride_id, rating, comment,role) VALUES ($1, $2, $3,'driver')",
                             [data.ride_id, data.rating, data.comment]
                         );
-                       
-                         ws.send(JSON.stringify({ message: `rated the ride successfully` }));
+
+                        ws.send(JSON.stringify({ message: `rated the ride successfully` }));
                         // Call the trigger
-                        
+
                         notifyDrivers({
                             type: "rating",
                             ride_id: data.ride_id,
