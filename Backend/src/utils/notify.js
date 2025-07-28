@@ -95,23 +95,42 @@ function markDriverSeenRider(driverId, riderId) {
   console.log(`Driver ${driverId} has now seen rider ${riderId}`);
 }
 
+function markDriverNotSeenRider(driverId, riderId) {
+  // If the driver doesn't exist in the map, nothing to do
+  if (!driverRiderHistory.has(driverId)) {
+    return;
+  }
+
+  const riderSet = driverRiderHistory.get(driverId);
+
+  // Remove the rider from the set
+  riderSet.delete(riderId);
+
+  console.log(`Driver ${driverId} is now marked as NOT having seen rider ${riderId}`);
+
+  // Optional: if the set becomes empty, remove the driver from the map
+  if (riderSet.size === 0) {
+    driverRiderHistory.delete(driverId);
+  }
+}
+
 const processingDrivers = new Set();
 
 
 // Notify drivers one by one, by proximity, without pendingRides map
-async function notifyDriversSequentially(driversList, rideInfo, onAccept, onNoDriver, wss, driversMap) {
+async function notifyDriversSequentially(availableDrivers, rideInfo, onAccept, onNoDriver,  driversMap) {
   try {
     let idx = 0;
 
     function tryNextDriver() {
-      if (idx >= driversList.length) {
+      if (idx >= availableDrivers.length) {
         setTimeout(() => {
           if (onNoDriver) onNoDriver();
         }, 20000);
         return;
       }
 
-      const driver = driversList[idx];
+      const driver = availableDrivers[idx];
       idx++;
 
       if (driver.ws.readyState !== 1) {
@@ -121,10 +140,17 @@ async function notifyDriversSequentially(driversList, rideInfo, onAccept, onNoDr
 
       const driverInMap = driversMap.get(driver.driver_id);
 
+    
       // ATOMIC CHECK AND SET
       if (driver.hasSeenThisRider ||
         !driverInMap.available ||
-        processingDrivers.has(driver.driver_id)) {
+        processingDrivers.has(driver.driver_id) ||
+      driver.vehicle !== rideInfo.vehicle) {
+
+        console.log(driver.hasSeenThisRider)
+        console.log(!driverInMap.available)
+        console.log(processingDrivers.has(driver.driver_id))
+        console.log(driver.vehicle !== rideInfo.vehicle)
 
         console.log(`skipping Driver ${driver.driver_id} for ${rideInfo.rider_id} - busy`);
         tryNextDriver();
@@ -182,4 +208,4 @@ async function notifyDriversSequentially(driversList, rideInfo, onAccept, onNoDr
   }
 }
 
-module.exports = { setWss, notifyDrivers, notifyRiders, getDistance, hasDriverSeenRider, notifyDriversSequentially };
+module.exports = { setWss, notifyDrivers, notifyRiders, getDistance, hasDriverSeenRider, notifyDriversSequentially ,markDriverNotSeenRider};

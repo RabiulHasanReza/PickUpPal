@@ -50,8 +50,8 @@ const driverIcon = new L.DivIcon({
 const DEFAULT_COORDS = {
   start_latitude: 23.8103,
   start_longitude: 90.4125,
-  end_latitude: 23.8700,
-  end_longitude: 90.4000
+  end_latitude: 23.87,
+  end_longitude: 90.4,
 };
 
 const DriverRidePage = () => {
@@ -62,7 +62,7 @@ const DriverRidePage = () => {
     ride_id: "",
     origin: "",
     destination: "",
-    ...DEFAULT_COORDS
+    ...DEFAULT_COORDS,
   });
   const [driverInfo, setDriverInfo] = useState({
     driver_id: "",
@@ -75,13 +75,24 @@ const DriverRidePage = () => {
   const [feedback, setFeedback] = useState("");
   const [driverPosition, setDriverPosition] = useState({
     lat: DEFAULT_COORDS.start_latitude + 0.005,
-    lng: DEFAULT_COORDS.start_longitude + 0.005
+    lng: DEFAULT_COORDS.start_longitude + 0.005,
   });
   const [mapReady, setMapReady] = useState(false);
   const [routeCoords, setRouteCoords] = useState([]);
   const [simulationProgress, setSimulationProgress] = useState(0);
   const [showArrivalNotification, setShowArrivalNotification] = useState(false);
   const simulationInterval = useRef(null);
+
+  useEffect(() => {
+    if (mapReady && rideInfo.start_latitude && rideInfo.end_latitude) {
+      calculateRoute();
+    }
+  }, [mapReady, rideInfo]);
+  useEffect(() => {
+    if (routeCoords.length > 1 && rideStatus === "en_route") {
+      simulateToPickup();
+    }
+  }, [routeCoords]);
 
   // Helper functions
   const getStatusMessage = () => {
@@ -132,7 +143,8 @@ const DriverRidePage = () => {
         {
           method: "POST",
           headers: {
-            Authorization: "5b3ce3597851110001cf6248159fb5b9de2a4436a27aa58dcf630560",
+            Authorization:
+              "5b3ce3597851110001cf6248159fb5b9de2a4436a27aa58dcf630560",
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -170,7 +182,7 @@ const DriverRidePage = () => {
     setSimulationProgress(0);
     const start = {
       lat: rideInfo.start_latitude + 0.01,
-      lng: rideInfo.start_longitude + 0.01
+      lng: rideInfo.start_longitude + 0.01,
     };
     setDriverPosition(start);
 
@@ -203,35 +215,49 @@ const DriverRidePage = () => {
   const simulateToDestination = () => {
     if (simulationInterval.current) {
       clearInterval(simulationInterval.current);
+      simulationInterval.current = null;
     }
 
-    setSimulationProgress(0);
+    if (!routeCoords.length) {
+      console.error("No route coordinates available for simulation");
+      return;
+    }
+
+    const totalPoints = routeCoords.length;
+    let currentIndex = 0;
+    const SPEED_FACTOR = 7; // Increase this number to go faster
+
     setRideStatus("in_progress");
+    setSimulationProgress(0);
+    setDriverPosition({
+      lat: routeCoords[0][0],
+      lng: routeCoords[0][1],
+    });
 
     simulationInterval.current = setInterval(() => {
-      setSimulationProgress((prev) => {
-        const newProgress = Math.min(prev + 1, 100);
-        const ratio = newProgress / 100;
+      // Skip ahead more points for faster movement
+      currentIndex += SPEED_FACTOR;
 
-        // Simulate moving to destination
-        const newPosition = {
-          lat: rideInfo.start_latitude + 
-               (rideInfo.end_latitude - rideInfo.start_latitude) * ratio,
-          lng: rideInfo.start_longitude + 
-               (rideInfo.end_longitude - rideInfo.start_longitude) * ratio,
-        };
+      if (currentIndex >= totalPoints) {
+        clearInterval(simulationInterval.current);
+        simulationInterval.current = null;
+        setRideStatus("completed");
+        setSimulationProgress(100);
+        setDriverPosition({
+          lat: routeCoords[totalPoints - 1][0],
+          lng: routeCoords[totalPoints - 1][1],
+        });
+        sendTripComplete();
+        return;
+      }
 
-        setDriverPosition(newPosition);
-
-        if (newProgress === 100) {
-          clearInterval(simulationInterval.current);
-          setRideStatus("completed");
-          sendTripComplete();
-        }
-
-        return newProgress;
+      const progress = Math.floor((currentIndex / totalPoints) * 100);
+      setSimulationProgress(progress);
+      setDriverPosition({
+        lat: routeCoords[currentIndex][0],
+        lng: routeCoords[currentIndex][1],
       });
-    }, 100);
+    }, 100); // Reduced interval from 200ms to 100ms
   };
 
   const sendTripComplete = () => {
@@ -245,7 +271,7 @@ const DriverRidePage = () => {
         ws.send(
           JSON.stringify({
             role: "driver",
-            action: "trip_complete",
+            action: "End Trip",
             ride_id: rideInfo.ride_id,
             driver_id: driverInfo.driver_id,
           })
@@ -280,7 +306,7 @@ const DriverRidePage = () => {
         end_latitude,
         end_longitude,
       } = location.state.rideInfo;
-      
+
       const newRideInfo = {
         ride_id,
         origin: origin || "Current Location",
@@ -294,7 +320,7 @@ const DriverRidePage = () => {
       setRideInfo(newRideInfo);
       setDriverPosition({
         lat: newRideInfo.start_latitude + 0.005,
-        lng: newRideInfo.start_longitude + 0.005
+        lng: newRideInfo.start_longitude + 0.005,
       });
 
       localStorage.setItem(
@@ -320,7 +346,7 @@ const DriverRidePage = () => {
           end_latitude,
           end_longitude,
         } = savedRide.rideInfo;
-        
+
         const loadedRideInfo = {
           ride_id,
           origin: origin || "Current Location",
@@ -339,7 +365,7 @@ const DriverRidePage = () => {
 
         setDriverPosition({
           lat: loadedRideInfo.start_latitude + 0.005,
-          lng: loadedRideInfo.start_longitude + 0.005
+          lng: loadedRideInfo.start_longitude + 0.005,
         });
       }
     }
@@ -374,9 +400,8 @@ const DriverRidePage = () => {
         ws.send(
           JSON.stringify({
             role: "driver",
-            action: "start_trip",
+            action: "Start Trip",
             ride_id: rideInfo.ride_id,
-            driver_id: driverInfo.driver_id,
           })
         );
       } else {
@@ -385,7 +410,7 @@ const DriverRidePage = () => {
     } catch (error) {
       console.error("Error sending status update:", error);
     }
-    
+
     simulateToDestination();
   };
 
@@ -396,7 +421,7 @@ const DriverRidePage = () => {
         ws.send(
           JSON.stringify({
             role: "driver",
-            action: "rating",
+            action: "rider_rating",
             ride_id: rideInfo.ride_id,
             driver_id: driverInfo.driver_id,
             rating: rating,
@@ -439,8 +464,8 @@ const DriverRidePage = () => {
           <h2 className="text-xl">{getStatusMessage()}</h2>
           {rideStatus !== "completed" && (
             <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-              <div 
-                className="bg-blue-600 h-2.5 rounded-full" 
+              <div
+                className="bg-blue-600 h-2.5 rounded-full"
                 style={{ width: `${simulationProgress}%` }}
               ></div>
             </div>

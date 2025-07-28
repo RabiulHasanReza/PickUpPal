@@ -12,6 +12,7 @@ const DriverSignUpPage = () => {
     licensePlate: "",
     capacity: "4",
     color: "White",
+    vehicle: "car" // Changed from vehicleType to match backend
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -31,25 +32,42 @@ const DriverSignUpPage = () => {
 
     try {
       const user = JSON.parse(localStorage.getItem("loggedInUser"));
+      
+      // Prepare the data to match backend expectations
+      const requestData = {
+        driver_id: user.id,
+        license_num: formData.licenseNum,
+        model: formData.model,
+        license_plate: formData.licensePlate,
+        capacity: formData.capacity,
+        color: formData.color,
+        vehicle: formData.vehicle // Using 'vehicle' instead of 'vehicle_type'
+      };
 
-      const response = await fetch("http://localhost:3000/api/driver/vehicle", {
+      const response = await fetch("http://localhost:3000/api/signup/driver", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          driver_id: user.id,
-          ...formData,
-        }),
+        body: JSON.stringify(requestData),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to submit vehicle details");
+        throw new Error(data.error || "Failed to complete driver registration");
       }
+
+      // Update local storage with the complete driver info
+      localStorage.setItem("loggedInUser", JSON.stringify({
+        ...user,
+        ...data,
+        role: 'driver'
+      }));
 
       navigate("/driverdashboard");
     } catch (err) {
-      setError(err.message || "Failed to submit details. Please try again.");
+      setError(err.message || "Failed to complete registration. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -166,6 +184,25 @@ const DriverSignUpPage = () => {
                 placeholder="e.g. White"
                 className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+
+            <div>
+              <label
+                htmlFor="vehicle"
+                className="block mb-2 text-sm sm:text-base text-gray-700 dark:text-gray-300"
+              >
+                Vehicle Type
+              </label>
+              <select
+                id="vehicle"
+                value={formData.vehicle}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="car">Car</option>
+                <option value="bike">Motorcycle</option>
+                <option value="cng">CNG</option>
+              </select>
             </div>
 
             <button

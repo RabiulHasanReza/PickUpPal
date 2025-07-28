@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 
 const SignUpPage = () => {
   const query = new URLSearchParams(useLocation().search);
-  const role = query.get('role') || 'rider'; // Default to rider if no role specified
+  const role = query.get('role') || 'rider';
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -14,7 +14,8 @@ const SignUpPage = () => {
     email: '',
     phone: '',
     password: '',
-    confirm: ''
+    confirm: '',
+    vehicleType: 'car' // Default vehicle type for drivers
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,9 +28,37 @@ const SignUpPage = () => {
     }));
   };
 
+  const getDefaultVehicleInfo = (vehicleType) => {
+    const randomNum = Math.floor(Math.random() * 1000);
+    
+    switch(vehicleType) {
+      case 'bike':
+        return {
+          model: 'Yamaha FZS',
+          license_plate: 'DHA-B' + randomNum,
+          capacity: '1',
+          color: 'Black'
+        };
+      case 'cng':
+        return {
+          model: 'Bajaj RE',
+          license_plate: 'DHA-C' + randomNum,
+          capacity: '3',
+          color: 'Green'
+        };
+      default: // car
+        return {
+          model: 'Toyota Corolla',
+          license_plate: 'DHA-' + randomNum,
+          capacity: '4',
+          color: 'White'
+        };
+    }
+  };
+
   const handleSignup = async (e) => {
     e.preventDefault();
-    const { name, email, phone, password, confirm } = formData;
+    const { name, email, phone, password, confirm, vehicleType } = formData;
 
     // Client-side validation
     if (!name || !email || !phone || !password || !confirm) {
@@ -51,14 +80,13 @@ const SignUpPage = () => {
 
       if (role === 'driver') {
         endpoint = '/api/signup/driver';
-        // Add required driver fields
+        const vehicleInfo = getDefaultVehicleInfo(vehicleType);
+        
         body = {
           ...body,
-          license_num: 'DRIVER' + Math.floor(Math.random() * 10000), // Generate random license number
-          model: 'Toyota Corolla',
-          license_plate: 'DHA-' + Math.floor(Math.random() * 1000),
-          capacity: '4',
-          color: 'White'
+          license_num: 'DRIVER' + Math.floor(Math.random() * 10000),
+          vehicle_type: vehicleType,
+          ...vehicleInfo
         };
       }
 
@@ -76,13 +104,19 @@ const SignUpPage = () => {
         throw new Error(data.error || 'Signup failed');
       }
 
-      // Save user data and token to localStorage
-      localStorage.setItem('loggedInUser', JSON.stringify(data.user));
-      localStorage.setItem('token', data.token);
+      // Save user data to localStorage (including role)
+      localStorage.setItem('loggedInUser', JSON.stringify({
+        ...data,
+        role: role // Add role to the stored user data
+      }));
+
+      // For drivers, also save vehicle_type if available
+      if (role === 'driver' && data.vehicle_type) {
+        localStorage.setItem('vehicle_type', data.vehicle_type);
+      }
 
       // Redirect based on role
-      // In the handleSignup function, change the navigate line to:
-       navigate(role === 'driver' ? '/driversignup' : '/login');
+      navigate(role === 'driver' ? '/driversignup' : '/login');
 
     } catch (err) {
       setError(err.message || 'Signup failed. Please try again.');
@@ -157,6 +191,25 @@ const SignUpPage = () => {
                 className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+
+            {role === 'driver' && (
+              <div>
+                <label htmlFor="vehicleType" className="block mb-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
+                  Vehicle Type
+                </label>
+                <select
+                  id="vehicleType"
+                  value={formData.vehicleType}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="car">Car</option>
+                  <option value="bike">Motorcycle</option>
+                  <option value="cng">CNG</option>
+                </select>
+              </div>
+            )}
 
             <div>
               <label htmlFor="password" className="block mb-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">

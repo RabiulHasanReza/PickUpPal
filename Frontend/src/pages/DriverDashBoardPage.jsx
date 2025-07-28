@@ -141,6 +141,10 @@ const DriverDashboardPage = () => {
                   destination: data.ride.destination,
                   vehicle: data.ride.vehicle,
                   req_time: new Date().toISOString(),
+                  origin_latitude: data.ride.origin_latitude,
+                  origin_longitude: data.ride.origin_longitude,
+                  destination_latitude: data.ride.destination_latitude,
+                  destination_longitude: data.ride.destination_longitude,
                 },
               ];
             }
@@ -215,7 +219,7 @@ const DriverDashboardPage = () => {
               console.log("🎉 Ride accepted, updating state...");
 
               setCurrentRide({
-                ride_id: rideId, // Using backend-provided ride_id
+                ride_id: rideId,
                 rider_id: ride.rider_id,
                 origin: ride.origin,
                 destination: ride.destination,
@@ -228,34 +232,31 @@ const DriverDashboardPage = () => {
                 prev.filter((r) => r.ride_id !== rideId)
               );
 
+              // Navigate to driver ride page with ALL coordinates
               navigate("/driver-ride", {
                 state: {
                   rideInfo: {
-                    ride_id: rideId, // Using backend-provided ride_id
+                    ride_id: ride.ride_id,
                     origin: ride.origin,
                     destination: ride.destination,
+                    start_latitude: ride.origin_latitude,
+                    start_longitude: ride.origin_longitude,
+                    end_latitude: ride.destination_latitude,
+                    end_longitude: ride.destination_longitude,
                   },
                 },
               });
-            } else {
-              console.warn(
-                "⚠️ Unexpected WebSocket response message:",
-                response.message
-              );
             }
           } catch (e) {
             console.error("❌ Failed to parse WebSocket message:", e);
           }
         };
-      } else {
-        console.error("❌ WebSocket is not connected.");
-        alert("WebSocket is not connected. Please try again.");
       }
     } catch (error) {
       console.error("🔥 Unexpected error in acceptRide:", error);
-      alert("Something went wrong. Please try again.");
     }
   };
+
   const declineRide = (rideId) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
@@ -624,10 +625,10 @@ const DriverDashboardPage = () => {
                                       ride_id: ride.ride_id,
                                       origin: ride.origin,
                                       destination: ride.destination,
-                                      start_latitude: ride.start_latitude,
-                                      start_longitude: ride.start_longitude,
-                                      end_latitude: ride.end_latitude,
-                                      end_longitude: ride.end_longitude,
+                                      start_latitude: ride.origin_latitude,
+                                      start_longitude: ride.origin_longitude,
+                                      end_latitude: ride.destination_latitude,
+                                      end_longitude: ride.destination_longitude,
                                     },
                                   },
                                 });

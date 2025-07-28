@@ -15,7 +15,7 @@ import {
   FaPhone,
   FaCheckCircle,
 } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { data, useNavigate } from "react-router-dom";
 import {
   MapContainer,
   TileLayer,
@@ -75,6 +75,10 @@ const DashboardPage = () => {
   const [simulationInterval, setSimulationInterval] = useState(null);
   const [simulationProgress, setSimulationProgress] = useState(0);
   const [paymentStatus, setPaymentStatus] = useState(null);
+  const [availableVehicles, setAvailableVehicles] = useState([]);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [fares, setFares] = useState(null);
+  const [showVehicleSelection, setShowVehicleSelection] = useState(false);
   const navigate = useNavigate();
   const startInputRef = useRef();
   const endInputRef = useRef();
@@ -103,8 +107,12 @@ const DashboardPage = () => {
     iconAnchor: [14, 28],
     popupAnchor: [0, -28],
   });
+  // Add these icon definitions near the other icon definitions in DashBoardPage.jsx
+
 
   // Simulates driver coming to pickup
+  // Simulates driver coming to pickup
+  // Replace the existing simulateToPickup function in DashBoardPage.jsx with this:
   const simulateToPickup = (pickupCoords) => {
     // Clear any existing simulation
     if (simulationInterval) clearInterval(simulationInterval);
@@ -139,10 +147,6 @@ const DashboardPage = () => {
           clearInterval(interval);
           setRideStatus("driver_arrived");
           setShowArrivalNotification(true);
-          setTimeout(() => {
-            setShowArrivalNotification(false);
-            simulateToDestination(pickupCoords, endCoords); // Start next phase
-          }, 3000); // 3 second wait at pickup
         }
 
         return newProgress;
@@ -152,43 +156,46 @@ const DashboardPage = () => {
   };
 
   // Simulates trip to destination
-  const simulateToDestination = (startCoords, endCoords) => {
-    if (simulationInterval) clearInterval(simulationInterval);
+ const simulateToDestination = (startCoords, endCoords) => {
+  if (simulationInterval) clearInterval(simulationInterval);
 
-    setRideStatus("trip_in_progress");
-    setSimulationProgress(0);
+  if (!routeCoords.length) {
+    console.error("No route coordinates available for simulation");
+    return;
+  }
 
-    const interval = setInterval(() => {
-      setSimulationProgress((prev) => {
-        const newProgress = Math.min(prev + 1, 100);
-        const ratio = newProgress / 100;
+  setRideStatus("trip_in_progress");
+  setSimulationProgress(0);
 
-        // Update position along route
-        const newLat =
-          startCoords.lat + (endCoords.lat - startCoords.lat) * ratio;
-        const newLng =
-          startCoords.lng + (endCoords.lng - startCoords.lng) * ratio;
+  const totalPoints = routeCoords.length;
+  const SPEED_FACTOR = 7; // Increase this to make the vehicle move faster
+  const UPDATE_INTERVAL = 100; // Reduced from 200ms for smoother animation
 
-        setSimulatedDriverPosition({ lat: newLat, lng: newLng });
-        setDriverInfo((d) => ({
-          ...d,
-          currentLatitude: newLat,
-          currentLongitude: newLng,
-        }));
+  const interval = setInterval(() => {
+    setSimulationProgress((prev) => {
+      const newProgress = Math.min(prev + SPEED_FACTOR, 100); // Increased progress increment
+      const pointIndex = Math.floor((newProgress / 100) * (totalPoints - 1));
+      const point = routeCoords[pointIndex];
 
-        // When reached destination
-        if (newProgress === 100) {
-          clearInterval(interval);
-          setRideStatus("trip_completed");
-          setShowRatingForm(true);
-        }
+      setSimulatedDriverPosition({ lat: point[0], lng: point[1] });
+      setDriverInfo((d) => ({
+        ...d,
+        currentLatitude: point[0],
+        currentLongitude: point[1],
+      }));
 
-        return newProgress;
-      });
-    }, 200);
-    setSimulationInterval(interval);
-  };
+      if (newProgress === 100) {
+        clearInterval(interval);
+        setRideStatus("trip_completed");
+        setShowRatingForm(true);
+      }
 
+      return newProgress;
+    });
+  }, UPDATE_INTERVAL);
+  
+  setSimulationInterval(interval);
+};
   useEffect(() => {
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
     const storedTheme = localStorage.getItem("theme");
@@ -399,37 +406,42 @@ const DashboardPage = () => {
       return;
     }
 
+    // Calculate distance in km for fare calculation
+    const distanceKm = distance ? (distance / 1000).toFixed(2) : 0;
+
     const rideRequest = {
       role: "rider",
       action: "ride_request",
       rider_id,
       origin: pickupLocation,
       destination: destination,
-      start_latitude: pickupCoords?.lat,
-      start_longitude: pickupCoords?.lng,
-      end_latitude: endCoords?.lat,
-      end_longitude: endCoords?.lng,
+      origin_latitude: pickupCoords?.lat,
+      origin_longitude: pickupCoords?.lng,
+      destination_latitude: endCoords?.lat,
+      destination_longitude: endCoords?.lng,
+      distance: distanceKm,
     };
 
     try {
       ws.send(JSON.stringify(rideRequest));
 
+      // Handle the response for fare estimates
       ws.onmessage = (msg) => {
         const response = JSON.parse(msg.data);
+        console.log("Received Response:", response);
 
         if (response.fares) {
-          const vehicleSelection = {
-            role: "rider",
-            action: "select_vehicle",
-            rider_id,
-            origin: pickupLocation,
-            destination: destination,
-            vehicle: "bike", // or let user select
-            fare: response.fares.bike, // or selected vehicle fare
-          };
-          ws.send(JSON.stringify(vehicleSelection));
+          // Show vehicle selection modal
+          setFares(response.fares);
+          setAvailableVehicles([
+            { type: "Bike", fare: response.fares.Bike },
+            { type: "Car", fare: response.fares.Car },
+            { type: "Cng", fare: response.fares.Cng },
+          ]);
+          setShowVehicleSelection(true);
+          setSubmitting(false);
         } else if (response.status === "accepted") {
-          // Now we expect the backend to provide ride_id
+          // Existing acceptance handling
           navigate(`/ride`, {
             state: {
               driverInfo: {
@@ -439,7 +451,7 @@ const DashboardPage = () => {
                 model: response.model,
                 license_plate: response.license_plate,
                 color: response.color,
-                rideId: response.ride_id, // Use backend-provided ride_id
+                rideId: response.ride_id,
               },
               pickupLocation,
               destination,
@@ -453,10 +465,32 @@ const DashboardPage = () => {
         }
       };
     } catch (err) {
-      console.error("WebSocket error:", err);
+      console.error("WebSocket Error:", err);
       setError("WebSocket communication failed.");
       setSubmitting(false);
     }
+  };
+
+  const handleVehicleSelect = (vehicleType) => {
+    setSelectedVehicle(vehicleType);
+    setShowVehicleSelection(false);
+
+    const vehicleSelection = {
+      role: "rider",
+      action: "select_vehicle",
+      rider_id: user.id,
+      origin: pickupLocation,
+      origin_latitude: pickupCoords?.lat,
+      origin_longitude: pickupCoords?.lng,
+      destination: destination,
+      destination_latitude: endCoords?.lat,
+      destination_longitude: endCoords?.lng,
+      vehicle: vehicleType,
+      fare: fares[vehicleType],
+    };
+
+    ws.send(JSON.stringify(vehicleSelection));
+    setSubmitting(true);
   };
 
   useEffect(() => {
@@ -468,6 +502,7 @@ const DashboardPage = () => {
         console.log("WebSocket message received:", data);
 
         // Handle ride acceptance
+        // Handle ride acceptance after vehicle selection
         if (data.status && data.status.trim() === "accepted") {
           const newDriverInfo = {
             driverId: data.driver_id,
@@ -488,13 +523,14 @@ const DashboardPage = () => {
             start_longitude: pickupCoords?.lng,
             end_latitude: endCoords?.lat,
             end_longitude: endCoords?.lng,
+            vehicle: selectedVehicle,
+            fare: fares[selectedVehicle],
           };
 
           setDriverInfo(newDriverInfo);
           setActiveRide(newActiveRide);
           setRideStatus("driver_arriving");
 
-          // Start arrival simulation
           if (pickupCoords) {
             simulateToPickup(pickupCoords);
           }
@@ -509,16 +545,25 @@ const DashboardPage = () => {
           );
         }
         // Handle trip start (triggered by driver clicking Start Trip)
-        else if (
-          data.status === "trip_in_progress" &&
-          data.simulate_destination
-        ) {
+        else if (data.status === "Start Trip") {
           setRideStatus("trip_in_progress");
-          // Dashboard can show appropriate UI for trip in progress
 
-          // Update localStorage
+          // Get the current ride coordinates from state or local storage
           const currentRide =
             JSON.parse(localStorage.getItem("currentRide")) || {};
+          const startCoords = {
+            lat: currentRide.rideInfo?.start_latitude || pickupCoords?.lat,
+            lng: currentRide.rideInfo?.start_longitude || pickupCoords?.lng,
+          };
+          const endCoords = {
+            lat: currentRide.rideInfo?.end_latitude || endCoords?.lat,
+            lng: currentRide.rideInfo?.end_longitude || endCoords?.lng,
+          };
+
+          // Start the trip simulation
+          simulateToDestination(startCoords, endCoords);
+
+          // Update localStorage
           localStorage.setItem(
             "currentRide",
             JSON.stringify({
@@ -547,18 +592,34 @@ const DashboardPage = () => {
         // Handle trip completion
         else if (data.status === "Trip ended") {
           setRideStatus("trip_completed");
+
+          // Update the active ride with fare information
+          setActiveRide((prev) => ({
+            ...prev,
+            fare: data.Trip_Fare,
+            status: "completed",
+          }));
+
           setShowRatingForm(true);
 
-          // Update localStorage
+          // Update localStorage with fare and status
           const currentRide =
             JSON.parse(localStorage.getItem("currentRide")) || {};
           localStorage.setItem(
             "currentRide",
             JSON.stringify({
               ...currentRide,
+              rideInfo: {
+                ...currentRide.rideInfo,
+                fare: data.Trip_Fare,
+                status: "completed",
+              },
               rideStatus: "trip_completed",
             })
           );
+
+          // You can also display the fare to the user here if needed
+          console.log(`Trip completed. Fare: $${data.Trip_Fare}`);
         }
         // Handle fare estimates
         else if (data.fares) {
@@ -589,7 +650,7 @@ const DashboardPage = () => {
       ws.send(
         JSON.stringify({
           role: "rider",
-          action: "rating",
+          action: "driver_rating",
           ride_id: activeRide.rideId,
           rating: rating,
           comment: feedback,
@@ -819,6 +880,7 @@ const DashboardPage = () => {
                     <Popup>Destination</Popup>
                   </Marker>
 
+
                   {driverInfo.currentLatitude &&
                     driverInfo.currentLongitude && (
                       <Marker
@@ -921,65 +983,66 @@ const DashboardPage = () => {
             </div>
           )}
           {rideStatus === "trip_completed" && showRatingForm && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-                  <h3 className="text-lg font-semibold mb-4 dark:text-white">
-                    Trip Completed - Make Payment
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-700 dark:text-gray-300">
-                        Trip Fare:
-                      </span>
-                      <span className="font-bold text-lg text-blue-600 dark:text-blue-300">
-                        ${((distance / 1000) * 1.5).toFixed(2)}{" "}
-                        {/* Example fare calculation */}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-700 dark:text-gray-300">
-                        Payment Method:
-                      </span>
-                      <span className="font-medium">Credit Card ****4242</span>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        // In a real app, this would connect to a payment processor
-                        setPaymentStatus("processing");
-                        setTimeout(() => {
-                          setPaymentStatus("completed");
-                          setShowRatingForm(true);
-                        }, 2000);
-                      }}
-                      disabled={
-                        paymentStatus === "processing" ||
-                        paymentStatus === "completed"
-                      }
-                      className={`w-full py-3 rounded-lg font-medium text-white transition-colors duration-300 ${
-                        paymentStatus === "processing"
-                          ? "bg-yellow-500 hover:bg-yellow-600"
-                          : paymentStatus === "completed"
-                            ? "bg-green-500 hover:bg-green-600"
-                            : "bg-blue-600 hover:bg-blue-700"
-                      }`}
-                    >
-                      {paymentStatus === "processing"
-                        ? "Processing Payment..."
-                        : paymentStatus === "completed"
-                          ? "Payment Successful!"
-                          : "Pay Now"}
-                    </button>
-
-                    {paymentStatus === "completed" && (
-                      <div className="flex items-center justify-center text-green-600 dark:text-green-400">
-                        <FaCheckCircle className="mr-2" />
-                        <span>Payment processed successfully</span>
-                      </div>
-                    )}
-                  </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+              <h3 className="text-lg font-semibold mb-4 dark:text-white">
+                Trip Completed - Make Payment
+              </h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700 dark:text-gray-300">
+                    Trip Fare:
+                  </span>
+                  <span className="font-bold text-lg text-blue-600 dark:text-blue-300">
+                    <p>${activeRide.fare.toFixed(2)}</p>
+                    {/* {((distance / 1000) * 1.5).toFixed(2)}{" "} */}
+                    {/* Example fare calculation */}
+                  </span>
                 </div>
-              )}
+
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700 dark:text-gray-300">
+                    Payment Method:
+                  </span>
+                  <span className="font-medium">Credit Card ****4242</span>
+                </div>
+
+                <button
+                  onClick={() => {
+                    // In a real app, this would connect to a payment processor
+                    setPaymentStatus("processing");
+                    setTimeout(() => {
+                      setPaymentStatus("completed");
+                      setShowRatingForm(true);
+                    }, 2000);
+                  }}
+                  disabled={
+                    paymentStatus === "processing" ||
+                    paymentStatus === "completed"
+                  }
+                  className={`w-full py-3 rounded-lg font-medium text-white transition-colors duration-300 ${
+                    paymentStatus === "processing"
+                      ? "bg-yellow-500 hover:bg-yellow-600"
+                      : paymentStatus === "completed"
+                        ? "bg-green-500 hover:bg-green-600"
+                        : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                >
+                  {paymentStatus === "processing"
+                    ? "Processing Payment..."
+                    : paymentStatus === "completed"
+                      ? "Payment Successful!"
+                      : "Pay Now"}
+                </button>
+
+                {paymentStatus === "completed" && (
+                  <div className="flex items-center justify-center text-green-600 dark:text-green-400">
+                    <FaCheckCircle className="mr-2" />
+                    <span>Payment processed successfully</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Search Bar */}
           {!activeRide && (
@@ -1174,7 +1237,11 @@ const DashboardPage = () => {
                     disabled={submitting || !pickupCoords || !endCoords}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    {submitting ? "Requesting Ride..." : "Request Ride"}
+                    {submitting
+                      ? "Requesting Ride..."
+                      : selectedVehicle
+                        ? `Request ${selectedVehicle} ($${fares[selectedVehicle].toFixed(2)})`
+                        : "Request Ride"}
                   </button>
                 </form>
               </div>
@@ -1273,6 +1340,39 @@ const DashboardPage = () => {
               </p>
             )}
           </div>
+          {/* Vehicle Selection Modal */}
+          {showVehicleSelection && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
+                <h3 className="text-xl font-bold mb-4 dark:text-white">
+                  Select Your Vehicle
+                </h3>
+                <div className="space-y-4">
+                  {availableVehicles.map((vehicle) => (
+                    <button
+                      key={vehicle.type}
+                      onClick={() => handleVehicleSelect(vehicle.type)}
+                      className="w-full flex justify-between items-center p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <div className="flex items-center">
+                        <FaCar className="mr-3 text-lg" />
+                        <span className="font-medium">{vehicle.type}</span>
+                      </div>
+                      <span className="font-bold">
+                        ${vehicle.fare.toFixed(2)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setShowVehicleSelection(false)}
+                  className="mt-4 w-full py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Logout Button */}
           <div className="max-w-3xl mx-auto flex justify-center">
