@@ -260,7 +260,11 @@ module.exports = function handleWebSocket(
                                             ws.rider_id,
                                             data.origin,
                                             data.destination,
+<<<<<<< HEAD
                                             Math.round(data.fare),
+=======
+                                            data.fare,
+>>>>>>> 8a8219426e47cac0b9cd6f642acaf3b83d019ad9
                                             data.vehicle,
                                         ]
                                     );

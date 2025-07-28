@@ -1,11 +1,3 @@
-CREATE TABLE IF NOT EXISTS user_history (
-    user_id INTEGER PRIMARY KEY,
-    role TEXT CHECK (role IN ('rider', 'driver')),
-    total_rides INTEGER NOT NULL DEFAULT 0,
-    total_fare NUMERIC(10, 2) NOT NULL DEFAULT 0,
-    last_trip_time TIMESTAMP
-);
-
 CREATE OR REPLACE FUNCTION update_user_history()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -31,10 +23,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_update_user_history ON rides;
-
 CREATE TRIGGER trg_update_user_history
 AFTER UPDATE ON rides
 FOR EACH ROW
 WHEN (NEW.status = 'completed' AND OLD.status IS DISTINCT FROM NEW.status)
 EXECUTE FUNCTION update_user_history();
+
+
+-- If want to delete the trigger : 
+DROP TRIGGER IF EXISTS trg_update_user_history ON rides;
