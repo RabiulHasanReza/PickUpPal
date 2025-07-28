@@ -1,3 +1,14 @@
+.SING Up as driver 
+.driver's rating in driverSettingPage
+.In driverEarningPage and Driverdashboard we need his earning and time range
+.history for both rider and driver history and recentActivity  
+.Drivers vehicle info in driver setting page and add fuctionality for update
+.ar paitesina paile janabo ne
+
+
+
+
+
 # Backend API Endpoints:
 
 add longitute and latitude while sending ride request for both picup and destination
