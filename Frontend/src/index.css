@@ -37,10 +37,12 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #3c8daa;
+  background: linear-gradient(to right, #3c8daa, #63b3ed); /* example: blend of #3c8daa and light blue */
+  color: white;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.25s, background 0.3s ease;
 }
+
 button:hover {
   border-color: #646cff;
 }

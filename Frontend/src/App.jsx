@@ -16,6 +16,8 @@ import DriverEarningsPage from "./pages/DriverEarningsPage";
 import DriverSettingsPage from "./pages/DriverSettingsPage";
 import HelpPage from './pages/HelpPage';
 import DriverRidePage from './pages/DriverRidePage';
+import AboutUsPage from './pages/AboutPage';
+import PrivacyPolicyPage from './pages/PrivacyPage';
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
         <Route path="/ride" element={<RidePage />} />
         <Route path="/driver-ride" element={<DriverRidePage/>} />
         <Route path="*" element={<NotFoundPage />} />
+        <Route path="/about" element={<AboutUsPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/rider/history" element={<RideHistoryPage />} />
         <Route path="/rider/payments" element={<PaymentMethodsPage />} />
         <Route path="/rider/settings" element={<SettingsPage />} />

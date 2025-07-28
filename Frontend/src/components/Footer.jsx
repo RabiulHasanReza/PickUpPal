@@ -1,10 +1,10 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
+import React from "react";
+import { Link } from "react-router-dom";
+import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from "react-icons/fa";
 
 const Footer = () => {
   return (
-    <footer className="bg-[#5a8bb9] dark:bg-[#5a8bb9] text-white py-8 px-4 sm:px-6 lg:px-8 transition-colors duration-500">
+    <footer className="bg-gradient-to-r from-teal-500 to-[#65c4e7] dark:bg-[#5a8bb9] text-white py-8 px-4 sm:px-6 lg:px-8 transition-colors duration-500">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
@@ -37,22 +37,26 @@ const Footer = () => {
             <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2">
               <li>
-                <Link to="/" className="hover:text-[#cfd4da] transition-colors text-sm">
+                <Link
+                  to="/"
+                  className="hover:text-[#cfd4da] transition-colors text-sm"
+                >
                   Home
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="hover:text-[#aac8e3] transition-colors text-sm">
+                <Link
+                  to="/about"
+                  className="hover:text-[#aac8e3] transition-colors text-sm"
+                >
                   About Us
                 </Link>
               </li>
               <li>
-                <Link to="/rides" className="hover:text-[#aac8e3] transition-colors text-sm">
-                  Find Rides
-                </Link>
-              </li>
-              <li>
-                <Link to="/drivers" className="hover:text-[#aac8e3] transition-colors text-sm">
+                <Link
+                  to="/signup?role=driver"
+                  className="hover:text-[#aac8e3] transition-colors text-sm"
+                >
                   Become a Driver
                 </Link>
               </li>
@@ -64,22 +68,19 @@ const Footer = () => {
             <h4 className="text-lg font-semibold mb-4">Support</h4>
             <ul className="space-y-2">
               <li>
-                <Link to="/contact" className="hover:text-[#aac8e3] transition-colors text-sm">
+                <Link
+                  to="/help#contact-support"
+                  className="hover:text-[#aac8e3] transition-colors text-sm"
+                >
                   Contact Us
                 </Link>
               </li>
+
               <li>
-                <Link to="/faq" className="hover:text-[#aac8e3] transition-colors text-sm">
-                  FAQ
-                </Link>
-              </li>
-              <li>
-                <Link to="/safety" className="hover:text-[#aac8e3] transition-colors text-sm">
-                  Safety
-                </Link>
-              </li>
-              <li>
-                <Link to="/privacy" className="hover:text-[#aac8e3] transition-colors text-sm">
+                <Link
+                  to="/privacy"
+                  className="hover:text-[#aac8e3] transition-colors text-sm"
+                >
                   Privacy Policy
                 </Link>
               </li>

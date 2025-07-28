@@ -20,7 +20,7 @@ function DashboardHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full bg-[#87b2dc] text-white shadow-md">
+      <header className="sticky top-0 z-50 w-full bg-gradient-to-r from-teal-500 to-[#65c4e7] text-white shadow-md">
         <div className="max-w-screen-xl mx-auto flex flex-wrap justify-between items-center px-4 py-3">
           <h1 className="text-xl font-extrabold font-sans">PickUpPal</h1>
 
@@ -81,7 +81,7 @@ function DashboardHeader() {
 
       {/* Welcome Bar */}
       {user && (
-        <div className="bg-[#5a8bb9] text-white text-sm px-4 py-2 shadow-sm text-center sm:text-left">
+        <div className="bg-gradient-to-r from-[#65c4e7] to-teal-400 text-white text-sm px-4 py-2 shadow-sm text-center sm:text-left">
           Welcome back, <span className="font-semibold">{user.name}</span>!{" "}
           {user.role?.toLowerCase() === "rider"
             ? "Wanna go somewhere?"
