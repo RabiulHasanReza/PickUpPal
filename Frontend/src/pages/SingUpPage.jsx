@@ -15,7 +15,13 @@ const SignUpPage = () => {
     phone: '',
     password: '',
     confirm: '',
-    vehicleType: 'car' // Default vehicle type for drivers
+    // Driver-specific fields
+    licenseNum: '',
+    model: '',
+    licensePlate: '',
+    capacity: '4',
+    color: 'White',
+    vehicle: 'Car'
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,37 +34,9 @@ const SignUpPage = () => {
     }));
   };
 
-  const getDefaultVehicleInfo = (vehicleType) => {
-    const randomNum = Math.floor(Math.random() * 1000);
-    
-    switch(vehicleType) {
-      case 'bike':
-        return {
-          model: 'Yamaha FZS',
-          license_plate: 'DHA-B' + randomNum,
-          capacity: '1',
-          color: 'Black'
-        };
-      case 'cng':
-        return {
-          model: 'Bajaj RE',
-          license_plate: 'DHA-C' + randomNum,
-          capacity: '3',
-          color: 'Green'
-        };
-      default: // car
-        return {
-          model: 'Toyota Corolla',
-          license_plate: 'DHA-' + randomNum,
-          capacity: '4',
-          color: 'White'
-        };
-    }
-  };
-
   const handleSignup = async (e) => {
     e.preventDefault();
-    const { name, email, phone, password, confirm, vehicleType } = formData;
+    const { name, email, phone, password, confirm } = formData;
 
     // Client-side validation
     if (!name || !email || !phone || !password || !confirm) {
@@ -71,6 +49,14 @@ const SignUpPage = () => {
       return;
     }
 
+    if (role === 'driver') {
+      const { licenseNum, model, licensePlate } = formData;
+      if (!licenseNum || !model || !licensePlate) {
+        setError('All driver fields are required');
+        return;
+      }
+    }
+
     setIsLoading(true);
     setError('');
 
@@ -80,13 +66,14 @@ const SignUpPage = () => {
 
       if (role === 'driver') {
         endpoint = '/api/signup/driver';
-        const vehicleInfo = getDefaultVehicleInfo(vehicleType);
-        
         body = {
           ...body,
-          license_num: 'DRIVER' + Math.floor(Math.random() * 10000),
-          vehicle_type: vehicleType,
-          ...vehicleInfo
+          license_num: formData.licenseNum,
+          model: formData.model,
+          license_plate: formData.licensePlate,
+          capacity: formData.capacity,
+          color: formData.color,
+          vehicle: formData.vehicle
         };
       }
 
@@ -107,16 +94,11 @@ const SignUpPage = () => {
       // Save user data to localStorage (including role)
       localStorage.setItem('loggedInUser', JSON.stringify({
         ...data,
-        role: role // Add role to the stored user data
+        role: role
       }));
 
-      // For drivers, also save vehicle_type if available
-      if (role === 'driver' && data.vehicle_type) {
-        localStorage.setItem('vehicle_type', data.vehicle_type);
-      }
-
       // Redirect based on role
-      navigate(role === 'driver' ? '/driversignup' : '/login');
+      navigate(role === 'driver' ? '/login' : '/login');
 
     } catch (err) {
       setError(err.message || 'Signup failed. Please try again.');
@@ -193,22 +175,100 @@ const SignUpPage = () => {
             </div>
 
             {role === 'driver' && (
-              <div>
-                <label htmlFor="vehicleType" className="block mb-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
-                  Vehicle Type
-                </label>
-                <select
-                  id="vehicleType"
-                  value={formData.vehicleType}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="car">Car</option>
-                  <option value="bike">Motorcycle</option>
-                  <option value="cng">CNG</option>
-                </select>
-              </div>
+              <>
+                <div>
+                  <label htmlFor="licenseNum" className="block mb-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
+                    Driver's License Number
+                  </label>
+                  <input
+                    id="licenseNum"
+                    type="text"
+                    value={formData.licenseNum}
+                    onChange={handleChange}
+                    required
+                    placeholder="Enter your license number"
+                    className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="model" className="block mb-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
+                    Vehicle Model
+                  </label>
+                  <input
+                    id="model"
+                    type="text"
+                    value={formData.model}
+                    onChange={handleChange}
+                    required
+                    placeholder="e.g. Toyota Corolla"
+                    className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="licensePlate" className="block mb-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
+                    License Plate Number
+                  </label>
+                  <input
+                    id="licensePlate"
+                    type="text"
+                    value={formData.licensePlate}
+                    onChange={handleChange}
+                    required
+                    placeholder="e.g. DHA-1234"
+                    className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="capacity" className="block mb-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
+                    Passenger Capacity
+                  </label>
+                  <select
+                    id="capacity"
+                    value={formData.capacity}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="2">2</option>
+                    <option value="4">4</option>
+                    <option value="6">6</option>
+                    <option value="8">8</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="color" className="block mb-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
+                    Vehicle Color
+                  </label>
+                  <input
+                    id="color"
+                    type="text"
+                    value={formData.color}
+                    onChange={handleChange}
+                    required
+                    placeholder="e.g. White"
+                    className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="vehicle" className="block mb-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
+                    Vehicle Type
+                  </label>
+                  <select
+                    id="vehicle"
+                    value={formData.vehicle}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Car">Car</option>
+                    <option value="Bike">Motorcycle</option>
+                    <option value="Cng">CNG</option>
+                  </select>
+                </div>
+              </>
             )}
 
             <div>

@@ -7,12 +7,16 @@ import Footer from "../components/Footer";
 const DriverSignUpPage = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
     licenseNum: "",
     model: "",
     licensePlate: "",
     capacity: "4",
     color: "White",
-    vehicle: "car" // Changed from vehicleType to match backend
+    vehicle: "car"
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -31,17 +35,18 @@ const DriverSignUpPage = () => {
     setError("");
 
     try {
-      const user = JSON.parse(localStorage.getItem("loggedInUser"));
-      
       // Prepare the data to match backend expectations
       const requestData = {
-        driver_id: user.id,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
         license_num: formData.licenseNum,
         model: formData.model,
         license_plate: formData.licensePlate,
         capacity: formData.capacity,
         color: formData.color,
-        vehicle: formData.vehicle // Using 'vehicle' instead of 'vehicle_type'
+        vehicle: formData.vehicle
       };
 
       const response = await fetch("http://localhost:3000/api/signup/driver", {
@@ -58,9 +63,8 @@ const DriverSignUpPage = () => {
         throw new Error(data.error || "Failed to complete driver registration");
       }
 
-      // Update local storage with the complete driver info
+      // Save user data to local storage
       localStorage.setItem("loggedInUser", JSON.stringify({
-        ...user,
         ...data,
         role: 'driver'
       }));
@@ -84,7 +88,7 @@ const DriverSignUpPage = () => {
           className="bg-[#c1d2e7] dark:bg-[#334155] rounded-xl shadow-lg w-full max-w-md p-6 sm:p-8 md:p-10"
         >
           <h2 className="text-2xl sm:text-3xl font-semibold text-center text-gray-800 dark:text-white mb-6">
-            Complete Your Driver Profile
+            Driver Registration
           </h2>
 
           {error && (
@@ -94,6 +98,78 @@ const DriverSignUpPage = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label
+                htmlFor="name"
+                className="block mb-2 text-sm sm:text-base text-gray-700 dark:text-gray-300"
+              >
+                Full Name
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                placeholder="Enter your full name"
+                className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="email"
+                className="block mb-2 text-sm sm:text-base text-gray-700 dark:text-gray-300"
+              >
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                placeholder="Enter your email"
+                className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="phone"
+                className="block mb-2 text-sm sm:text-base text-gray-700 dark:text-gray-300"
+              >
+                Phone Number
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleChange}
+                required
+                placeholder="Enter your phone number"
+                className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="password"
+                className="block mb-2 text-sm sm:text-base text-gray-700 dark:text-gray-300"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                placeholder="Create a password"
+                className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
             <div>
               <label
                 htmlFor="licenseNum"
@@ -210,7 +286,7 @@ const DriverSignUpPage = () => {
               disabled={isLoading}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold text-base transition duration-300 disabled:opacity-70"
             >
-              {isLoading ? "Submitting..." : "Complete Registration"}
+              {isLoading ? "Registering..." : "Register as Driver"}
             </button>
           </form>
         </motion.div>

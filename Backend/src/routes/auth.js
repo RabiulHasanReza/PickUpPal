@@ -13,46 +13,42 @@ router.post("/signup/rider", async (req, res) => {
       [email]
     );
 
-    //If already exists in users
+    // If already exists in users
     if (existingUser.rows.length > 0) {
-      //Check Id in Rider
+      // Check if already a rider
       const existingRider = await pool.query(
-        "select * from users where email = $1 and id in (select rider_id from riders)",
-        [email]
+        "SELECT * FROM riders WHERE rider_id = $1",
+        [existingUser.rows[0].id]
       );
 
       if (existingRider.rows.length > 0) {
-        return res.status(400).json({ error: "Email already registered" });
+        return res.status(400).json({ error: "Email already registered as rider" });
       } else {
         const newRider = await pool.query(
-          "insert into riders(rider_id) select id from users where email = $1",
-          [email]
+          "INSERT INTO riders(rider_id) VALUES($1)",
+          [existingUser.rows[0].id]
         );
-        res.json(newRider.rows[0]);
+        return res.json({ ...existingUser.rows[0], role: 'rider' });
       }
     }
 
     // Totally new Rider
-    else {
-      const newUser = await pool.query(
-        "insert into users (name,email,phone,password) values($1,$2,$3,$4) returning *",
-        [name, email, phone, password]
-      ); // newUser is an object
+    const newUser = await pool.query(
+  "INSERT INTO users (name, email, phone, password, role) VALUES($1, $2, $3, $4, 'rider') RETURNING *",
+  [name, email, phone, password]
+);
 
-      const newRider = await pool.query(
-        "insert into riders(rider_id) select id from users where email = $1",
-        [email]
-      );
+    await pool.query(
+      "INSERT INTO riders(rider_id) VALUES($1)",
+      [newUser.rows[0].id]
+    );
 
-      res.json(newUser.rows[0]);
-      // console.log(newUser)
-    }
+    res.json({ ...newUser.rows[0], role: 'rider' });
+
   } catch (error) {
     console.log(error.message);
+    res.status(500).json({ error: "Server error during rider signup" });
   }
-
-  //     console.log(name)
-  //   res.json(req.body.name)
 });
 
 // Driver Signup
@@ -68,6 +64,7 @@ router.post("/signup/driver", async (req, res) => {
       license_plate,
       capacity,
       color,
+      vehicle = 'car' // Default to car if not provided
     } = req.body;
 
     // Check email from users table
@@ -76,93 +73,93 @@ router.post("/signup/driver", async (req, res) => {
       [email]
     );
 
-    //If already exists in users
+    // If already exists in users
     if (existingUser.rows.length > 0) {
-      //Check Id in Driver
+      // Check if already a driver
       const existingDriver = await pool.query(
-        "select * from users where email = $1 and id in (select driver_id from drivers)",
-        [email]
+        "SELECT * FROM drivers WHERE driver_id = $1",
+        [existingUser.rows[0].id]
       );
 
       if (existingDriver.rows.length > 0) {
-        return res.status(400).json({ error: "Email already registered" });
-      } else {
-        let stats = "Active";
-        const newDriver = await pool.query(
-          "insert into drivers(driver_id, license_num, avg_rating, stats) values($1,$2,$3,$4)",
-          [existingUser.rows[0].id, license_num, 0.0, stats]
-        );
-
-        const newDriver2 = await pool.query(
-          "insert into vehicles(driver_id, model, license_plate, capacity, color) values($1,$2,$3,$4,$5)",
-          [existingUser.rows[0].id, model, license_plate, capacity, color]
-        );
-
-        res.json({
-          user: newDriver.rows[0],
-          driver: newDriver2.rows[0],
-        });
+        return res.status(400).json({ error: "Email already registered as driver" });
       }
+
+      // If user exists but not driver, make them a driver
+      const stats = "Active";
+      await pool.query(
+        "INSERT INTO drivers(driver_id, license_num, avg_rating, stats) VALUES($1, $2, $3, $4)",
+        [existingUser.rows[0].id, license_num, 0.0, stats]
+      );
+
+      await pool.query(
+        "INSERT INTO vehicles(driver_id, model, license_plate, capacity, color, vehicle) VALUES($1, $2, $3, $4, $5, $6)",
+        [existingUser.rows[0].id, model, license_plate, capacity, color, vehicle]
+      );
+
+      return res.json({ 
+        ...existingUser.rows[0],
+        role: 'driver',
+        vehicle 
+      });
     }
 
     // Totally new Driver
-    else {
-      const newUser = await pool.query(
-        "insert into users (name,email,phone,password) values($1,$2,$3,$4) returning *",
-        [name, email, phone, password]
-      ); // newUser is an object
+    const newUser = await pool.query(
+  "INSERT INTO users (name, email, phone, password, role) VALUES($1, $2, $3, $4, 'driver') RETURNING *",
+  [name, email, phone, password]
+);
 
-      let stats = "Active";
-      const newDriver = await pool.query(
-        "insert into drivers(driver_id, license_num, avg_rating, stats) values($1,$2,$3,$4) returning *",
-        [newUser.rows[0].id, license_num, 0.0, stats]
-      );
+    const stats = "Active";
+    await pool.query(
+      "INSERT INTO drivers(driver_id, license_num, avg_rating, stats) VALUES($1, $2, $3, $4)",
+      [newUser.rows[0].id, license_num, 0.0, stats]
+    );
 
-      const newDriver2 = await pool.query(
-        "insert into vehicles(driver_id, model, license_plate, capacity, color) values($1,$2,$3,$4,$5) returning *",
-        [newUser.rows[0].id, model, license_plate, capacity, color]
-      );
+    await pool.query(
+      "INSERT INTO vehicles(driver_id, model, license_plate, capacity, color, vehicle) VALUES($1, $2, $3, $4, $5, $6)",
+      [newUser.rows[0].id, model, license_plate, capacity, color, vehicle]
+    );
 
-      res.json({
-        user: newUser.rows[0],
-        driver: newDriver.rows[0],
-      });
-      // console.log(newUser)
-    }
+    res.json({ 
+      ...newUser.rows[0],
+      role: 'driver',
+      vehicle 
+    });
+
   } catch (error) {
     console.log(error.message);
+    res.status(500).json({ error: "Server error during driver signup" });
   }
-
-  //     console.log(name)
-  //   res.json(req.body.name)
 });
 
 // Rider Login
 router.post("/login/rider", async (req, res) => {
   const { email, password } = req.body;
 
-  const oldUser = await pool.query(
-    "select * from users where email = $1 and password = $2 ",
-    [email, password]
-  );
-
-  if (oldUser.rows.length > 0) {
-    const oldRider = await pool.query(
-      "select * from riders where rider_id = $1",
-      [oldUser.rows[0].id]
+  try {
+    const oldUser = await pool.query(
+      "SELECT * FROM users WHERE email = $1 AND password = $2",
+      [email, password]
     );
 
-    if (oldRider.rows.length > 0) {
-      // res.json("Successfully logged in as a Rider")
-      res.json({ ...oldUser.rows[0], role: 'rider' });
+    if (oldUser.rows.length > 0) {
+      const oldRider = await pool.query(
+        "SELECT * FROM riders WHERE rider_id = $1",
+        [oldUser.rows[0].id]
+      );
 
+      if (oldRider.rows.length > 0) {
+        res.json({ ...oldUser.rows[0], role: 'rider' });
+      } else {
+        res.status(400).json({ error: "Registered as user but not as rider" });
+      }
     } else {
-      return res
-        .status(400)
-        .json({ error: "registered as a user but, Not registered as a Rider" });
+      res.status(400).json({ error: "Not registered as user" });
     }
-  } else {
-    return res.status(400).json({ error: "Not registered as a user" });
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({ error: "Server error during rider login" });
   }
 });
 
@@ -170,30 +167,40 @@ router.post("/login/rider", async (req, res) => {
 router.post("/login/driver", async (req, res) => {
   const { email, password } = req.body;
 
-  const oldUser = await pool.query(
-    "select * from users where email = $1 and password = $2 ",
-    [email, password]
-  );
-
-  if (oldUser.rows.length > 0) {
-    const oldDriver = await pool.query(
-      "select * from drivers where driver_id = $1",
-      [oldUser.rows[0].id]
+  try {
+    const oldUser = await pool.query(
+      "SELECT * FROM users WHERE email = $1 AND password = $2",
+      [email, password]
     );
 
-    if (oldDriver.rows.length > 0) {
-      // res.json("Successfully logged in as a Rider")
-      res.json({ ...oldUser.rows[0], role: 'driver' });
+    if (oldUser.rows.length > 0) {
+      const oldDriver = await pool.query(
+        "SELECT * FROM drivers WHERE driver_id = $1",
+        [oldUser.rows[0].id]
+      );
 
+      if (oldDriver.rows.length > 0) {
+        // Get vehicle type for driver
+        const vehicle = await pool.query(
+          "SELECT vehicle FROM vehicles WHERE driver_id = $1 LIMIT 1",
+          [oldUser.rows[0].id]
+        );
+        
+        const response = { ...oldUser.rows[0], role: 'driver' };
+        if (vehicle.rows.length > 0) {
+          response.vehicle = vehicle.rows[0].vehicle;
+        }
+        
+        res.json(response);
+      } else {
+        res.status(400).json({ error: "Registered as user but not as driver" });
+      }
     } else {
-      return res
-        .status(400)
-        .json({
-          error: "registered as a user but, Not registered as a Driver",
-        });
+      res.status(400).json({ error: "Not registered as user" });
     }
-  } else {
-    return res.status(400).json({ error: "Not registered as a user" });
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({ error: "Server error during driver login" });
   }
 });
 
