@@ -1,9 +1,9 @@
-.SING Up as driver 
-.driver's rating in driverSettingPage
-.In driverEarningPage and Driverdashboard we need his earning and time range
-.history for both rider and driver history and recentActivity  
-.Drivers vehicle info in driver setting page and add fuctionality for update
-.ar paitesina paile janabo ne
+1.SING Up as driver 
+2.driver's rating in driverSettingPage
+3.In driverEarningPage and Driverdashboard we need his earning and time range
+4.history for both rider and driver history and recentActivity  
+5.Drivers vehicle info in driver setting page and add fuctionality for update
+6.ar paitesina paile janabo ne
 
 
 
