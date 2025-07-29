@@ -3,12 +3,23 @@ import DashboardHeader from "../components/DashBoardHeader";
 import Footer from "../components/Footer";
 import { FaQuestionCircle, FaPhone, FaEnvelope, FaMapMarkerAlt, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const HelpPage = () => {
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeQuestion, setActiveQuestion] = useState(null);
   const [isDark, setIsDark] = useState(false);
   const navigate = useNavigate();
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: ""
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState(null); // 'success' or 'error'
 
   const toggleTheme = () => {
     const newTheme = !isDark;
@@ -149,6 +160,51 @@ const HelpPage = () => {
     setActiveQuestion(activeQuestion === questionId ? null : questionId);
   };
 
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+
+    try {
+      // Get rider_id from localStorage or wherever it's stored in your app
+      // const rider_id = localStorage.getItem("user_id"); // Adjust this based on your auth system
+      
+      // if (!rider_id) {
+      //   throw new Error("User not authenticated");
+      // }
+
+      const response = await axios.post("/api/rider/help", {
+        ...formData
+      });
+
+      if (response.data.message) {
+        setSubmitStatus('success');
+        // Reset form on successful submission
+        setFormData({
+          name: "",
+          email: "",
+          subject: "",
+          message: ""
+        });
+      }
+    } catch (error) {
+      console.error("Error submitting help request:", error);
+      setSubmitStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900">
       <DashboardHeader />
@@ -202,7 +258,7 @@ const HelpPage = () => {
                 <div key={category.id} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                   <button
                     onClick={() => toggleCategory(category.id)}
-                      className="w-full flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="w-full flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
                     <h3 className="font-medium text-gray-800 dark:text-white">{category.title}</h3>
                     {activeCategory === category.id ? (
@@ -284,14 +340,31 @@ const HelpPage = () => {
             {/* Help Form */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
               <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Send us a message</h2>
-              <form className="space-y-4">
+              
+              {/* Submission status messages */}
+              {submitStatus === 'success' && (
+                <div className="mb-4 p-4 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-lg">
+                  Message sent successfully! We'll get back to you soon.
+                </div>
+              )}
+              
+              {submitStatus === 'error' && (
+                <div className="mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-lg">
+                  Failed to send message. Please try again later.
+                </div>
+              )}
+
+              <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
                   <input
                     type="text"
                     id="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Your name"
+                    required
                   />
                 </div>
                 
@@ -300,8 +373,11 @@ const HelpPage = () => {
                   <input
                     type="email"
                     id="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="your@email.com"
+                    required
                   />
                 </div>
                 
@@ -309,7 +385,10 @@ const HelpPage = () => {
                   <label htmlFor="subject" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject</label>
                   <select
                     id="subject"
+                    value={formData.subject}
+                    onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
                   >
                     <option value="">Select a topic</option>
                     <option value="account">Account Issues</option>
@@ -325,17 +404,21 @@ const HelpPage = () => {
                   <textarea
                     id="message"
                     rows="4"
+                    value={formData.message}
+                    onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Describe your issue..."
+                    required
                   ></textarea>
                 </div>
                 
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    disabled={isSubmitting}
                   >
-                    Send Message
+                    {isSubmitting ? "Sending..." : "Send Message"}
                   </button>
                 </div>
               </form>

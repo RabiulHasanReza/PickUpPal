@@ -82,6 +82,7 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const startInputRef = useRef();
   const endInputRef = useRef();
+  const [newPromo, setNewPromo] = useState(null); // {code, discount, expiry_date}
 
   // Custom map icons
   const startIcon = new L.DivIcon({
@@ -637,6 +638,16 @@ const DashboardPage = () => {
           // You can also display the fare to the user here if needed
           console.log(`Trip completed. Fare: $${data.Trip_Fare}`);
         }
+        // Inside your WebSocket message handler in useEffect
+        else if (data.promo) {
+          console.log("Received promo data:", data.promo);
+          // Show the promo notification with Accept/Decline buttons
+          setNewPromo({
+            code: data.promo.code,
+            discount: data.promo.discount,
+            expiry_date: data.promo.expiry_date,
+          });
+        }
         // Handle fare estimates
         else if (data.fares) {
           console.log("Fare estimates received:", data.fares);
@@ -986,7 +997,6 @@ const DashboardPage = () => {
                     <button
                       type="submit"
                       className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-300"
-                      onClick={() => navigate(0)}
                     >
                       Submit Rating
                     </button>
@@ -1053,6 +1063,91 @@ const DashboardPage = () => {
                     <span>Payment processed successfully</span>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+          {/* Promo Code Notification */}
+          {newPromo && (
+            <div className="fixed bottom-4 right-4 bg-blue-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 max-w-xs">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h4 className="font-bold">🎉 New Promo Code!</h4>
+                  <p className="text-sm mt-1">
+                    Get {newPromo.discount}% off with:{" "}
+                    <strong>{newPromo.code}</strong>
+                  </p>
+                  <p className="text-xs mt-1">
+                    Expires:{" "}
+                    {new Date(newPromo.expiry_date).toLocaleDateString()}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setNewPromo(null)}
+                  className="ml-2 text-white hover:text-gray-200"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(
+                        "http://localhost:3000/api/rider/promo",
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            rider_id: user.id,
+                            code: newPromo.code,
+                            action: "used",
+                          }),
+                        }
+                      );
+
+                      if (!response.ok)
+                        throw new Error("Failed to accept promo");
+                      setNewPromo(null);
+                    } catch (error) {
+                      console.error("Error accepting promo:", error);
+                    }
+                  }}
+                  className="flex-1 bg-white text-blue-600 py-1 rounded text-sm font-medium"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(
+                        "http://localhost:3000/api/rider/promo",
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            rider_id: user.id,
+                            code: newPromo.code,
+                            action: "decline",
+                          }),
+                        }
+                      );
+
+                      if (!response.ok)
+                        throw new Error("Failed to decline promo");
+                      setNewPromo(null);
+                    } catch (error) {
+                      console.error("Error declining promo:", error);
+                    }
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-800 py-1 rounded text-sm font-medium"
+                >
+                  Decline
+                </button>
               </div>
             </div>
           )}

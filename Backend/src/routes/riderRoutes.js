@@ -112,16 +112,16 @@ router.post("/promo", async (req, res) => {
 
 // POST /api/rider/help 
 router.post("/help", async (req, res) => {
-  const { rider_id, name, email, subject, message } = req.body;
+  const {  name, email, subject, message } = req.body;
 
-  if (!rider_id || !name || !email || !subject || !message) {
+  if ( !name || !email || !subject || !message) {
     return res.status(400).json({ error: "All fields are required" });
   }
 
   try {
     await pool.query(
       "INSERT INTO rider_messages (rider_id, name, email, subject, message) VALUES ($1, $2, $3, $4, $5)",
-      [rider_id, name, email, subject, message]
+      [1, name, email, subject, message]
     );
 
     res.json({ message: "Message sent successfully" });

@@ -18,6 +18,7 @@ import HelpPage from './pages/HelpPage';
 import DriverRidePage from './pages/DriverRidePage';
 import AboutUsPage from './pages/AboutPage';
 import PrivacyPolicyPage from './pages/PrivacyPage';
+import AdminPage from './pages/AdminPage';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
         <Route path="/driver/earnings" element={<DriverEarningsPage />} />
         <Route path="/driver/settings" element={<DriverSettingsPage />} />
         <Route path="/help" element={<HelpPage/>} />
+        <Route path="/admin" element={<AdminPage/>} />
       </Routes>
     </Router>
   );
