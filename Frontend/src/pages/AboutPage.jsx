@@ -45,16 +45,18 @@ const AboutUsPage = () => {
                 Our Story
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-                Founded in 2023, Pickup Pal began as a simple idea to make urban
-                transportation more accessible and efficient. What started as a
-                small team of passionate developers and transportation experts
-                has grown into a leading mobility platform serving thousands of
-                users daily.
+                Pickup Pal began in 2025 as a Level 2, Term 1 database
+                management project, developed by a me and my friend eager
+                to bridge the gap between riders and drivers in a more
+                structured and efficient way. What started as a classroom idea
+                quickly evolved into a fully functional prototype.
               </p>
               <p className="text-lg text-gray-600 dark:text-gray-300">
-                We're committed to creating seamless connections between riders
-                and drivers, while prioritizing safety, affordability, and
-                environmental sustainability in everything we do.
+                Though still in its early stages, Pickup Pal showcases our
+                passion for solving real-world problems with technology. Our
+                goal is to create a reliable platform that demonstrates solid
+                database design, intuitive user experience, and practical
+                application of what we’ve learned.
               </p>
             </motion.div>
             <motion.div
@@ -191,7 +193,7 @@ const AboutUsPage = () => {
         </div>
 
         {/* Team Section */}
-        {/* <div className="bg-[#c1d2e7] dark:bg-[#334155] py-16">
+        <div className="bg-[#c1d2e7] dark:bg-[#334155] py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.h2 
               initial={{ opacity: 0 }}
@@ -205,8 +207,8 @@ const AboutUsPage = () => {
             <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
               {[
                 {
-                  name: 'Rabiul Hasan Reza & Solaiman Seyam',
-                  role: 'CEO & Founder',
+                  name: 'Rabiul Hasan Reza ',
+                  role: 'Founder',
                   image: 'https://randomuser.me/api/portraits/men/32.jpg'
                 },
               ].map((member, index) => (
@@ -219,7 +221,33 @@ const AboutUsPage = () => {
                   className="bg-white dark:bg-[#1f2533] rounded-xl overflow-hidden shadow-lg text-center"
                 >
                   <img 
-                    src={member.image} 
+                    src={'reza.jpg'} 
+                    alt={member.name}
+                    className="w-full h-64 object-cover"
+                  />
+                  <div className="p-6">
+                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white">{member.name}</h3>
+                    <p className="text-blue-600 dark:text-blue-400">{member.role}</p>
+                  </div>
+                </motion.div>
+              ))}
+              {[
+                {
+                  name: 'Solaiman Seyam',
+                  role: 'Founder',
+                  image: 'https://randomuser.me/api/portraits/men/32.jpg'
+                },
+              ].map((member, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.15 }}
+                  viewport={{ once: true }}
+                  className="bg-white dark:bg-[#1f2533] rounded-xl overflow-hidden shadow-lg text-center"
+                >
+                  <img 
+                    src={'seyam.jpg'} 
                     alt={member.name}
                     className="w-full h-64 object-cover"
                   />
@@ -231,7 +259,7 @@ const AboutUsPage = () => {
               ))}
             </div>
           </div>
-        </div> */}
+        </div>
 
         {/* CTA Section */}
         <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8 text-center">
@@ -255,6 +283,13 @@ const AboutUsPage = () => {
                 className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-blue-600 px-6 py-3 rounded-lg font-semibold transition duration-300"
               >
                 Become a Driver
+              </button>
+
+              <button
+                onClick={() => navigate("/signup?role=rider")}
+                className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-blue-600 px-6 py-3 rounded-lg font-semibold transition duration-300"
+              >
+                Become a Rider
               </button>
             </div>
           </motion.div>

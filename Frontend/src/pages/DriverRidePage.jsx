@@ -46,7 +46,30 @@ const driverIcon = new L.DivIcon({
   iconAnchor: [14, 28],
   popupAnchor: [0, -28],
 });
-
+// Custom map icons (add these near the other icon definitions)
+const vehicleIcons = {
+  Bike: new L.DivIcon({
+    className: "",
+    html: `<svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="#2e7d32" stroke="#fff" stroke-width="3"/><text x="14" y="19" font-size="16" text-anchor="middle" fill="#fff" font-family="Arial">🚲</text></svg>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -28],
+  }),
+  Car: new L.DivIcon({
+    className: "",
+    html: `<svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="#2e7d32" stroke="#fff" stroke-width="3"/><text x="14" y="19" font-size="16" text-anchor="middle" fill="#fff" font-family="Arial">🚗</text></svg>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -28],
+  }),
+  Cng: new L.DivIcon({
+    className: "",
+    html: `<svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="#2e7d32" stroke="#fff" stroke-width="3"/><text x="14" y="19" font-size="16" text-anchor="middle" fill="#fff" font-family="Arial">🛺</text></svg>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -28],
+  }),
+};
 const DEFAULT_COORDS = {
   start_latitude: 23.8103,
   start_longitude: 90.4125,
@@ -284,95 +307,102 @@ const DriverRidePage = () => {
     }
   };
 
-  useEffect(() => {
-    // Initialize with default values first
-    const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
-    if (loggedInUser) {
-      setDriverInfo({
-        driver_id: loggedInUser.id,
-        name: loggedInUser.name,
-        phone: loggedInUser.phone,
-      });
-    }
+useEffect(() => {
+  console.log("[1] Initializing driver ride page...");
+  
+  const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
+  if (loggedInUser) {
+    console.log("[2] Logged in user:", loggedInUser);
+    setDriverInfo(prev => ({
+      ...prev,
+      driver_id: loggedInUser.id,
+      name: loggedInUser.name,
+      phone: loggedInUser.phone,
+      // Don't set vehicleType here (we'll take it from rideInfo)
+    }));
+  }
 
-    // Then try to load from location state or localStorage
-    if (location.state?.rideInfo) {
-      const {
-        ride_id,
-        origin,
-        destination,
-        start_latitude,
-        start_longitude,
-        end_latitude,
-        end_longitude,
-      } = location.state.rideInfo;
+  if (location.state?.rideInfo) {
+    console.log("[3] Ride info found in location.state:", location.state.rideInfo);
+    const {
+      ride_id,
+      origin,
+      destination,
+      start_latitude,
+      start_longitude,
+      end_latitude,
+      end_longitude,
+      vehicle_type,
+    } = location.state.rideInfo;
 
-      const newRideInfo = {
-        ride_id,
-        origin: origin || "Current Location",
-        destination: destination || "Uttara, Dhaka - 1231, Bangladesh",
-        start_latitude: start_latitude || DEFAULT_COORDS.start_latitude,
-        start_longitude: start_longitude || DEFAULT_COORDS.start_longitude,
-        end_latitude: end_latitude || DEFAULT_COORDS.end_latitude,
-        end_longitude: end_longitude || DEFAULT_COORDS.end_longitude,
+    console.log("[4] Vehicle type from rideInfo:", vehicle_type);
+
+    const newRideInfo = {
+      ride_id,
+      origin: origin || "Current Location",
+      destination: destination || "Uttara, Dhaka - 1231, Bangladesh",
+      start_latitude: start_latitude || DEFAULT_COORDS.start_latitude,
+      start_longitude: start_longitude || DEFAULT_COORDS.start_longitude,
+      end_latitude: end_latitude || DEFAULT_COORDS.end_latitude,
+      end_longitude: end_longitude || DEFAULT_COORDS.end_longitude,
+    };
+
+    setRideInfo(newRideInfo);
+    setDriverPosition({
+      lat: newRideInfo.start_latitude + 0.005,
+      lng: newRideInfo.start_longitude + 0.005,
+    });
+
+    // STRICT: Use rideInfo.vehicle_type, fallback to "Car" only if undefined/null
+    const vehicleType = vehicle_type ?? "Car"; // (?? checks for null/undefined)
+    console.log("[5] Final vehicle type (strict from rideInfo):", vehicleType);
+
+    setDriverInfo(prev => ({
+      ...prev,
+      vehicleType, // Force-set from rideInfo
+    }));
+
+    localStorage.setItem(
+      "currentDriverRide",
+      JSON.stringify({
+        rideInfo: newRideInfo,
+        driverInfo: {
+          ...driverInfo, // Keep existing driver info
+          vehicleType,  // Override with ride's vehicle type
+        },
+      })
+    );
+  } else {
+    console.log("[6] No ride info in location.state, checking localStorage");
+    const savedRide = JSON.parse(localStorage.getItem("currentDriverRide"));
+    if (savedRide?.rideInfo) {
+      console.log("[7] Saved ride found, vehicle type:", savedRide.driverInfo?.vehicleType);
+      const loadedRideInfo = {
+        ride_id: savedRide.rideInfo.ride_id,
+        origin: savedRide.rideInfo.origin || "Current Location",
+        destination: savedRide.rideInfo.destination || "Uttara, Dhaka - 1231, Bangladesh",
+        start_latitude: savedRide.rideInfo.start_latitude || DEFAULT_COORDS.start_latitude,
+        start_longitude: savedRide.rideInfo.start_longitude || DEFAULT_COORDS.start_longitude,
+        end_latitude: savedRide.rideInfo.end_latitude || DEFAULT_COORDS.end_latitude,
+        end_longitude: savedRide.rideInfo.end_longitude || DEFAULT_COORDS.end_longitude,
       };
 
-      setRideInfo(newRideInfo);
+      setRideInfo(loadedRideInfo);
+      setDriverInfo(savedRide.driverInfo || { vehicleType: "Car" }); // Ensure vehicleType exists
       setDriverPosition({
-        lat: newRideInfo.start_latitude + 0.005,
-        lng: newRideInfo.start_longitude + 0.005,
+        lat: loadedRideInfo.start_latitude + 0.001,
+        lng: loadedRideInfo.start_longitude + 0.001,
       });
-
-      localStorage.setItem(
-        "currentDriverRide",
-        JSON.stringify({
-          rideInfo: newRideInfo,
-          driverInfo: {
-            driver_id: loggedInUser?.id,
-            name: loggedInUser?.name,
-            phone: loggedInUser?.phone,
-          },
-        })
-      );
-    } else {
-      const savedRide = JSON.parse(localStorage.getItem("currentDriverRide"));
-      if (savedRide?.rideInfo) {
-        const {
-          ride_id,
-          origin,
-          destination,
-          start_latitude,
-          start_longitude,
-          end_latitude,
-          end_longitude,
-        } = savedRide.rideInfo;
-
-        const loadedRideInfo = {
-          ride_id,
-          origin: origin || "Current Location",
-          destination: destination || "Uttara, Dhaka - 1231, Bangladesh",
-          start_latitude: start_latitude || DEFAULT_COORDS.start_latitude,
-          start_longitude: start_longitude || DEFAULT_COORDS.start_longitude,
-          end_latitude: end_latitude || DEFAULT_COORDS.end_latitude,
-          end_longitude: end_longitude || DEFAULT_COORDS.end_longitude,
-        };
-
-        setRideInfo(loadedRideInfo);
-
-        if (savedRide.driverInfo) {
-          setDriverInfo(savedRide.driverInfo);
-        }
-
-        setDriverPosition({
-          lat: loadedRideInfo.start_latitude + 0.005,
-          lng: loadedRideInfo.start_longitude + 0.005,
-        });
-      }
     }
+  }
 
-    setMapReady(true);
-  }, [location.state]);
+  setMapReady(true);
+}, [location.state]);
 
+// Debugging: Log driverInfo updates
+useEffect(() => {
+  console.log("[8] Updated driverInfo:", driverInfo);
+}, [driverInfo]);
   useEffect(() => {
     if (mapReady && rideInfo.start_latitude && rideInfo.end_latitude) {
       calculateRoute();
@@ -456,7 +486,6 @@ const DriverRidePage = () => {
             <span>You have arrived at the pickup location!</span>
           </div>
         )}
-
         {/* Status Banner */}
         <div
           className={`p-4 rounded-lg mb-6 ${getStatusClass()} text-center font-semibold`}
@@ -557,7 +586,7 @@ const DriverRidePage = () => {
 
               <Marker
                 position={[driverPosition.lat, driverPosition.lng]}
-                icon={driverIcon}
+                icon={vehicleIcons[driverInfo.vehicleType] || vehicleIcons.Car} // Fallback to Car if no type specified
               >
                 <Popup>
                   {rideStatus === "en_route" && "Coming to pickup"}

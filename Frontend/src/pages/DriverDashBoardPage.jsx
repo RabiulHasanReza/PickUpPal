@@ -232,7 +232,7 @@ const DriverDashboardPage = () => {
                 prev.filter((r) => r.ride_id !== rideId)
               );
 
-              // Navigate to driver ride page with ALL coordinates
+              // Navigate to driver ride page with ALL coordinates AND vehicle type
               navigate("/driver-ride", {
                 state: {
                   rideInfo: {
@@ -243,6 +243,11 @@ const DriverDashboardPage = () => {
                     start_longitude: ride.origin_longitude,
                     end_latitude: ride.destination_latitude,
                     end_longitude: ride.destination_longitude,
+                    vehicle_type: ride.vehicle, // Include vehicle type from ride
+                  },
+                  driverInfo: {
+                    vehicleType:
+                      vehicleInfo?.type || user?.vehicle_type || "Car", // Include driver's vehicle type
                   },
                 },
               });
@@ -256,7 +261,6 @@ const DriverDashboardPage = () => {
       console.error("🔥 Unexpected error in acceptRide:", error);
     }
   };
-
   const declineRide = (rideId) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
@@ -530,7 +534,7 @@ const DriverDashboardPage = () => {
             </div>
 
             {/* Middle Column - Ride Requests/Current Ride */}
-            <div className="space-y-6">
+            <div className=" space-y-6">
               {currentRide ? (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
                   <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-4 flex items-center">
@@ -629,6 +633,13 @@ const DriverDashboardPage = () => {
                                       start_longitude: ride.origin_longitude,
                                       end_latitude: ride.destination_latitude,
                                       end_longitude: ride.destination_longitude,
+                                      vehicle_type: ride.vehicle, // Include vehicle type from ride
+                                    },
+                                    driverInfo: {
+                                      vehicleType:
+                                        vehicleInfo?.type ||
+                                        user?.vehicle_type ||
+                                        "Car", // Include driver's vehicle type
                                     },
                                   },
                                 });
@@ -737,23 +748,6 @@ const DriverDashboardPage = () => {
                     <FaWallet className="text-gray-700 dark:text-gray-200 mb-1" />
                     <span className="text-sm text-gray-700 dark:text-gray-200">
                       Earnings
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => navigate("/driver/settings")}
-                    className="bg-[#f0f4ff] dark:bg-[#5d7397] hover:bg-[#dbeafe] dark:hover:bg-[#4a5f7a] p-3 rounded-lg flex flex-col items-center transition-colors"
-                  >
-                    <FaCog className="text-gray-700 dark:text-gray-200 mb-1" />
-                    <span className="text-sm text-gray-700 dark:text-gray-200">
-                      Settings
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => navigate("/login")}
-                    className="bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-800 p-3 rounded-lg flex flex-col items-center transition-colors"
-                  >
-                    <span className="text-sm text-red-600 dark:text-red-300">
-                      Log Out
                     </span>
                   </button>
                 </div>

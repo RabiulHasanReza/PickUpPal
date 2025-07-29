@@ -100,15 +100,31 @@ const DashboardPage = () => {
     popupAnchor: [0, -34],
   });
 
-  const driverIcon = new L.DivIcon({
-    className: "",
-    html: `<svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="#2e7d32" stroke="#fff" stroke-width="3"/><text x="14" y="19" font-size="16" text-anchor="middle" fill="#fff" font-family="Arial">&#128663;</text></svg>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 28],
-    popupAnchor: [0, -28],
-  });
   // Add these icon definitions near the other icon definitions in DashBoardPage.jsx
-
+  // Custom map icons (add these near the other icon definitions)
+  const vehicleIcons = {
+    Bike: new L.DivIcon({
+      className: "",
+      html: `<svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="#2e7d32" stroke="#fff" stroke-width="3"/><text x="14" y="19" font-size="16" text-anchor="middle" fill="#fff" font-family="Arial">🚲</text></svg>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 28],
+      popupAnchor: [0, -28],
+    }),
+    Car: new L.DivIcon({
+      className: "",
+      html: `<svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="#2e7d32" stroke="#fff" stroke-width="3"/><text x="14" y="19" font-size="16" text-anchor="middle" fill="#fff" font-family="Arial">🚗</text></svg>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 28],
+      popupAnchor: [0, -28],
+    }),
+    Cng: new L.DivIcon({
+      className: "",
+      html: `<svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="#2e7d32" stroke="#fff" stroke-width="3"/><text x="14" y="19" font-size="16" text-anchor="middle" fill="#fff" font-family="Arial">🛺</text></svg>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 28],
+      popupAnchor: [0, -28],
+    }),
+  };
 
   // Simulates driver coming to pickup
   // Simulates driver coming to pickup
@@ -156,46 +172,46 @@ const DashboardPage = () => {
   };
 
   // Simulates trip to destination
- const simulateToDestination = (startCoords, endCoords) => {
-  if (simulationInterval) clearInterval(simulationInterval);
+  const simulateToDestination = (startCoords, endCoords) => {
+    if (simulationInterval) clearInterval(simulationInterval);
 
-  if (!routeCoords.length) {
-    console.error("No route coordinates available for simulation");
-    return;
-  }
+    if (!routeCoords.length) {
+      console.error("No route coordinates available for simulation");
+      return;
+    }
 
-  setRideStatus("trip_in_progress");
-  setSimulationProgress(0);
+    setRideStatus("trip_in_progress");
+    setSimulationProgress(0);
 
-  const totalPoints = routeCoords.length;
-  const SPEED_FACTOR = 7; // Increase this to make the vehicle move faster
-  const UPDATE_INTERVAL = 100; // Reduced from 200ms for smoother animation
+    const totalPoints = routeCoords.length;
+    const SPEED_FACTOR = 7; // Increase this to make the vehicle move faster
+    const UPDATE_INTERVAL = 100; // Reduced from 200ms for smoother animation
 
-  const interval = setInterval(() => {
-    setSimulationProgress((prev) => {
-      const newProgress = Math.min(prev + SPEED_FACTOR, 100); // Increased progress increment
-      const pointIndex = Math.floor((newProgress / 100) * (totalPoints - 1));
-      const point = routeCoords[pointIndex];
+    const interval = setInterval(() => {
+      setSimulationProgress((prev) => {
+        const newProgress = Math.min(prev + SPEED_FACTOR, 100); // Increased progress increment
+        const pointIndex = Math.floor((newProgress / 100) * (totalPoints - 1));
+        const point = routeCoords[pointIndex];
 
-      setSimulatedDriverPosition({ lat: point[0], lng: point[1] });
-      setDriverInfo((d) => ({
-        ...d,
-        currentLatitude: point[0],
-        currentLongitude: point[1],
-      }));
+        setSimulatedDriverPosition({ lat: point[0], lng: point[1] });
+        setDriverInfo((d) => ({
+          ...d,
+          currentLatitude: point[0],
+          currentLongitude: point[1],
+        }));
 
-      if (newProgress === 100) {
-        clearInterval(interval);
-        setRideStatus("trip_completed");
-        setShowRatingForm(true);
-      }
+        if (newProgress === 100) {
+          clearInterval(interval);
+          setRideStatus("trip_completed");
+          setShowRatingForm(true);
+        }
 
-      return newProgress;
-    });
-  }, UPDATE_INTERVAL);
-  
-  setSimulationInterval(interval);
-};
+        return newProgress;
+      });
+    }, UPDATE_INTERVAL);
+
+    setSimulationInterval(interval);
+  };
   useEffect(() => {
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
     const storedTheme = localStorage.getItem("theme");
@@ -513,6 +529,7 @@ const DashboardPage = () => {
             color: data.color,
             currentLatitude: pickupCoords?.lat,
             currentLongitude: pickupCoords?.lng,
+            vehicleType: data.vehicle_type,
           };
 
           const newActiveRide = {
@@ -857,7 +874,8 @@ const DashboardPage = () => {
                 >
                   <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    at
+                    tribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   />
 
                   <Marker
@@ -880,7 +898,6 @@ const DashboardPage = () => {
                     <Popup>Destination</Popup>
                   </Marker>
 
-
                   {driverInfo.currentLatitude &&
                     driverInfo.currentLongitude && (
                       <Marker
@@ -888,7 +905,7 @@ const DashboardPage = () => {
                           driverInfo.currentLatitude,
                           driverInfo.currentLongitude,
                         ]}
-                        icon={driverIcon}
+                        icon={vehicleIcons[selectedVehicle] || vehicleIcons.Car} // Default to Car if no selection
                       >
                         <Popup>Your Driver</Popup>
                       </Marker>
@@ -904,22 +921,18 @@ const DashboardPage = () => {
                     </>
                   )}
 
-                  {simulatedDriverPosition && (
-                    <Marker
-                      position={[
-                        simulatedDriverPosition.lat,
-                        simulatedDriverPosition.lng,
-                      ]}
-                      icon={driverIcon}
-                    >
-                      <Popup>
-                        {rideStatus === "driver_arriving" && "Coming to pickup"}
-                        {rideStatus === "driver_arrived" && "Waiting for you"}
-                        {rideStatus === "trip_in_progress" &&
-                          `Going to destination (${simulationProgress}%)`}
-                      </Popup>
-                    </Marker>
-                  )}
+                  {driverInfo.currentLatitude &&
+                    driverInfo.currentLongitude && (
+                      <Marker
+                        position={[
+                          driverInfo.currentLatitude,
+                          driverInfo.currentLongitude,
+                        ]}
+                        icon={vehicleIcons[selectedVehicle] || vehicleIcons.Car} // Default to Car if no selection
+                      >
+                        <Popup>Your Driver</Popup>
+                      </Marker>
+                    )}
                 </MapContainer>
               </div>
 
@@ -972,8 +985,10 @@ const DashboardPage = () => {
                     </div>
 
                     <button
+
                       type="submit"
                       className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-300"
+                    onClick={() => navigate(0)}
                     >
                       Submit Rating
                     </button>
@@ -1203,7 +1218,10 @@ const DashboardPage = () => {
                                 driver.current_latitude,
                                 driver.current_longitude,
                               ]}
-                              icon={driverIcon}
+                              icon={
+                                vehicleIcons[driver.vehicle_type] ||
+                                vehicleIcons.Car
+                              } // Use driver's vehicle type if available
                             >
                               <Popup>Driver #{driver.driver_id}</Popup>
                             </Marker>
@@ -1240,7 +1258,7 @@ const DashboardPage = () => {
                     {submitting
                       ? "Requesting Ride..."
                       : selectedVehicle
-                        ? `Request ${selectedVehicle} ($${fares[selectedVehicle].toFixed(2)})`
+                        ? `Request ${selectedVehicle} ${fares[selectedVehicle].toFixed(2)}`
                         : "Request Ride"}
                   </button>
                 </form>
@@ -1264,34 +1282,7 @@ const DashboardPage = () => {
                 View your ride history
               </p>
             </div>
-            <div
-              onClick={() => navigate("/rider/payments")}
-              className="bg-[#f0f4ff] dark:bg-[#5d7397] p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
-            >
-              <div className="flex items-center mb-2">
-                <FaWallet className="text-gray-700 dark:text-gray-100 mr-2" />
-                <h3 className="font-semibold text-gray-800 dark:text-white">
-                  Payment Methods
-                </h3>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
-                Manage your payments
-              </p>
-            </div>
-            <div
-              onClick={() => navigate("/rider/settings")}
-              className="bg-[#f0f4ff] dark:bg-[#5d7397] p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
-            >
-              <div className="flex items-center mb-2">
-                <FaCog className="text-gray-700 dark:text-gray-100 mr-2" />
-                <h3 className="font-semibold text-gray-800 dark:text-white">
-                  Settings
-                </h3>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
-                Update your preferences
-              </p>
-            </div>
+           
             <div
               onClick={() => navigate("/help")}
               className="bg-[#f0f4ff] dark:bg-[#5d7397] p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
