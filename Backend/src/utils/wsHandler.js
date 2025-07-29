@@ -65,19 +65,6 @@ module.exports = function handleWebSocket(
               `Driver ${ws.driver_id} starts the ride ${data.ride_id}`
             );
 
-            // const Result = await pool.query(
-            //     "SELECT ride_id FROM ride_req WHERE driver_id = $1 AND status = 'booked'",
-            //     [ws.driver_id]
-            // );
-
-            // // Optional: checking if result is empty
-            // if (Result.rows.length === 0) {
-            //     console.error("No ride_id found for driver");
-            //     return;
-            // }
-
-            // ws.ride_id = Result.rows[0].ride_id;
-
             await pool.query(
               "UPDATE ride_req SET arrived_time = CURRENT_TIMESTAMP, status = 'completed' WHERE ride_id = $1",
               [data.ride_id]
@@ -92,7 +79,8 @@ module.exports = function handleWebSocket(
               driver_id: ws.driver_id,
               ride_id: data.ride_id,
             });
-          } else if (data.action === "End Trip") {
+          }
+          else if (data.action === "End Trip") {
             console.log(`Driver ${ws.driver_id} ended the trip`);
 
             const result = await pool.query(
@@ -121,7 +109,8 @@ module.exports = function handleWebSocket(
             if (ws.driver_id && rider_id) {
               markDriverNotSeenRider(ws.driver_id, rider_id);
             }
-          } else if (data.action === "rider_rating") {
+          }
+          else if (data.action === "rider_rating") {
             //   const { ride_id } = data;
             console.log(
               `Driver ${ws.driver_id} rated the rider: ${data.rating}`
@@ -167,15 +156,62 @@ module.exports = function handleWebSocket(
             );
             // Example fare calculation
             const distance = data.distance; // implement this function
-            const fares = {
+            const baseFares = {
               Bike: distance * 10,
               Car: distance * 20,
               Cng: distance * 15,
             };
+
+
+            let totalDiscount = 0;
+
+            try {
+              const promoResult = await pool.query(
+                `SELECT discount FROM promo_codes 
+     WHERE rider_id = $1 
+       AND status = 'used' 
+       AND expiry_date > CURRENT_DATE`,
+                [ws.rider_id]
+              );
+
+       
+              for (let row of promoResult.rows) {
+                totalDiscount += row.discount; // Sum all discount percentages
+              }
+
+              // Optional: Cap total discount to a max (e.g. 80%)
+              totalDiscount = Math.min(totalDiscount, 80);
+
+            } catch (err) {
+              console.error("Error fetching promo codes:", err);
+            }
+
+            let discountedFares = {};
+            for (let type in baseFares) {
+              const fare = baseFares[type];
+              discountedFares[type] = Math.round(fare - (fare * totalDiscount) / 100);
+            }
+
+
+            //Mark used promo codes as 'closed'
+try {
+  await pool.query(
+    `UPDATE promo_codes
+     SET status = 'closed'
+     WHERE rider_id = $1 
+       AND status = 'used' 
+       AND expiry_date > CURRENT_DATE`,
+    [ws.rider_id]
+  );
+} catch (err) {
+  console.error("Failed to update promo code status:", err);
+}
+
             ws.send(
               JSON.stringify({
                 message: "Rider registered successfully  ",
-                fares,
+                fares: discountedFares,
+                total_discount_percent: totalDiscount
               })
             );
           } else if (data.action === "select_vehicle") {
@@ -334,27 +370,61 @@ module.exports = function handleWebSocket(
             } catch (error) {
               console.error("Error in notifyDriversSequentially:", error);
             }
-          } else if (data.action === "driver_rating") {
-            //   const { ride_id } = data;
+          }
+          else if (data.action === "driver_rating") {
+
             console.log(
               `Rider ${ws.rider_id} rated the driver: ${data.rating}`
             );
 
-            await pool.query(
-              "INSERT INTO ratings (ride_id, rating, comment,role) VALUES ($1, $2, $3,'driver')",
-              [data.ride_id, data.rating, data.comment]
-            );
+            try {
 
-            ws.send(JSON.stringify({ message: `rated the ride successfully` }));
-            // Call the trigger
+              await pool.query(
+                "INSERT INTO ratings (ride_id, rating, comment, role) VALUES ($1, $2, $3, 'driver')",
+                [data.ride_id, data.rating, data.comment]
+              );
 
-            notifyDrivers({
-              type: "rating",
-              ride_id: data.ride_id,
-              rider_id: ws.rider_id,
-              rating: data.rating,
-              comment: data.comment,
-            });
+
+              await pool.query(
+                `INSERT INTO promo_codes (rider_id, discount)
+       VALUES ($1, $2)`,
+                [ws.rider_id, 10] // example: 10 %  discount
+              );
+
+
+              notifyDrivers({
+                type: "rating",
+                ride_id: data.ride_id,
+                rider_id: ws.rider_id,
+                rating: data.rating,
+                comment: data.comment,
+              });
+
+
+              setTimeout(async () => {
+
+                const promoRes = await pool.query(
+                  `SELECT code, discount, expiry_date FROM promo_codes 
+         WHERE rider_id = $1 
+         ORDER BY expiry_date DESC 
+         LIMIT 1`,
+                  [ws.rider_id]
+                );
+
+                const promo = promoRes.rows[0];
+
+                console.log("Promo code for rider:", promo);
+
+                ws.send(JSON.stringify({
+                  message: `Thanks for rating! 🎉 You've received a promo code.`,
+                  promo
+                }));
+              }, 20000); // 20 seconds
+
+            } catch (error) {
+              console.error("Error during rating or promo logic:", error);
+              ws.send(JSON.stringify({ error: "Something went wrong." }));
+            }
           }
         }
       } catch (e) {
