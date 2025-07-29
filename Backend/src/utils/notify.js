@@ -140,6 +140,7 @@ async function notifyDriversSequentially(availableDrivers, rideInfo, onAccept, o
 
       const driverInMap = driversMap.get(driver.driver_id);
 
+      console.log(driver.vehicle, rideInfo.vehicle);
     
       // ATOMIC CHECK AND SET
       if (driver.hasSeenThisRider ||

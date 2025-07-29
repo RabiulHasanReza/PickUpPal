@@ -69,15 +69,14 @@ CREATE TABLE IF NOT EXISTS user_history (
     avg_rating REAL DEFAULT 0
 );
 
-
-
-
-
-
--- Have to these tables : 
-create TABLE driver_location(
-    driver_id INTEGER REFERENCES drivers(driver_id),
-    latitude REAL NOT NULL,
-    longitude REAL NOT NULL,
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE promo_codes (
+    code VARCHAR(5) PRIMARY KEY,                   -- Promo code (e.g., 'X9AB2')
+    rider_id INTEGER ,    -- Rider who owns the promo
+    discount INTEGER NOT NULL CHECK (discount > 0),
+    expiry_date DATE DEFAULT CURRENT_DATE + INTERVAL '10 days',
+    status TEXT CHECK (status IN ('open', 'used', 'closed')) DEFAULT 'open'
 );
+
+
+
+
