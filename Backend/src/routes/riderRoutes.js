@@ -110,4 +110,25 @@ router.post("/promo", async (req, res) => {
   }
 });
 
+// POST /api/rider/help 
+router.post("/help", async (req, res) => {
+  const { rider_id, name, email, subject, message } = req.body;
+
+  if (!rider_id || !name || !email || !subject || !message) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    await pool.query(
+      "INSERT INTO rider_messages (rider_id, name, email, subject, message) VALUES ($1, $2, $3, $4, $5)",
+      [rider_id, name, email, subject, message]
+    );
+
+    res.json({ message: "Message sent successfully" });
+  } catch (error) {
+    console.error("Error sending help message:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;
