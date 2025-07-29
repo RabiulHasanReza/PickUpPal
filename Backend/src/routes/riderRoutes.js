@@ -57,7 +57,7 @@ router.get("/history", async (req, res) => {
         rt.rating,
         rt.comment
       FROM rides r
-      JOIN users u ON r.rider_id = u.id
+      JOIN users u ON r.driver_id = u.id
       LEFT JOIN ratings rt ON r.ride_id = rt.ride_id AND rt.role = 'rider'
       WHERE r.rider_id = $1 AND r.status = 'completed'
       ORDER BY r.start_time DESC
@@ -106,6 +106,27 @@ router.post("/promo", async (req, res) => {
     res.json({ message: `Promo code ${action} successfully.` });
   } catch (error) {
     console.error("Error handling promo code:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/rider/help 
+router.post("/help", async (req, res) => {
+  const { rider_id, name, email, subject, message } = req.body;
+
+  if (!rider_id || !name || !email || !subject || !message) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    await pool.query(
+      "INSERT INTO rider_messages (rider_id, name, email, subject, message) VALUES ($1, $2, $3, $4, $5)",
+      [rider_id, name, email, subject, message]
+    );
+
+    res.json({ message: "Message sent successfully" });
+  } catch (error) {
+    console.error("Error sending help message:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -204,4 +204,25 @@ router.post("/login/driver", async (req, res) => {
   }
 });
 
+// Admin Login : /api/auth/login/admin
+router.post("/login/admin", async (req, res) => {
+  const { email, password } = req.body;
+  
+  try {
+    // Hardcoded admin credentials
+    const adminEmail = "admin@gmail.com";
+    const adminPassword = "admin123";
+
+    if (email === adminEmail && password === adminPassword) {
+      return res.status(200).json({ message: "Admin login successful" });
+    } else {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+     
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({ error: "Server error during admin login" });
+  }
+});
+
 module.exports = router;

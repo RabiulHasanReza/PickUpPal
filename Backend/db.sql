@@ -77,6 +77,14 @@ CREATE TABLE promo_codes (
     status TEXT CHECK (status IN ('open', 'used', 'closed')) DEFAULT 'open'
 );
 
+CREATE TABLE rider_messages (
+    rider_id INTEGER NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    subject VARCHAR(255) NOT NULL,
+    message TEXT ,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 
 
