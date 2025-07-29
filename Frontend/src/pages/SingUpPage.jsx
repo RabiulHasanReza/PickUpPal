@@ -65,7 +65,7 @@ const SignUpPage = () => {
       let body = { name, email, phone, password };
 
       if (role === 'driver') {
-        endpoint = '/api/signup/driver';
+        endpoint = '/api/auth/signup/driver';
         body = {
           ...body,
           license_num: formData.licenseNum,

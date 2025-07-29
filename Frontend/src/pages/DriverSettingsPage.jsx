@@ -53,7 +53,7 @@ const DriverSettingsPage = () => {
       try {
         // Fetch vehicle info
         const vehicleRes = await fetch(
-          `http://localhost:3000/driver/vehicle?driver_id=${loggedInUser.id}`
+          `http://localhost:3000/api/driver/vehicle?driver_id=${loggedInUser.id}`
         );
         if (vehicleRes.ok) {
           const vehicleData = await vehicleRes.json();
@@ -69,7 +69,7 @@ const DriverSettingsPage = () => {
 
         // Fetch settings
         const settingsRes = await fetch(
-          `http://localhost:3000/driver/settings?driver_id=${loggedInUser.id}`
+          `http://localhost:3000/api/driver/settings?driver_id=${loggedInUser.id}`
         );
         if (settingsRes.ok) {
           const settingsData = await settingsRes.json();
@@ -112,7 +112,7 @@ const DriverSettingsPage = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/driver/${user.id}/update`,
+        `http://localhost:3000/api/driver/${user.id}/update`,
         {
           method: "PUT",
           headers: {
@@ -147,7 +147,7 @@ const DriverSettingsPage = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/driver/vehicle/${user.id}/update`,
+        `http://localhost:3000/api/driver/vehicle/${user.id}/update`,
         {
           method: "PUT",
           headers: {

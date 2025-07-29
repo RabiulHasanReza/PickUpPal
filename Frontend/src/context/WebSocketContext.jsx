@@ -5,7 +5,7 @@ const useWebSocket = () => {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    ws.current = new WebSocket("ws://127.0.0.1:3000/ride");
+    ws.current = new WebSocket("ws://127.0.0.1:3000/ws/ride");
 
     ws.current.onopen = () => {
       console.log("WebSocket connected");

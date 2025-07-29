@@ -28,7 +28,7 @@ const DriverEarningsPage = () => {
     const fetchEarnings = async () => {
       try {
         const response = await fetch(
-          `http://localhost:3000/driver/earnings?driver_id=${loggedInUser.id}&range=${timeRange}`
+          `http://localhost:3000/api/driver/earnings?driver_id=${loggedInUser.id}&range=${timeRange}`
         );
         if (response.ok) {
           const data = await response.json();

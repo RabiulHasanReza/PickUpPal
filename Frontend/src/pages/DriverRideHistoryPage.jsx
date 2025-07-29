@@ -21,7 +21,7 @@ const DriverRideHistoryPage = () => {
     const fetchRideHistory = async () => {
       try {
         const response = await fetch(
-          `http://localhost:3000/driver/rides?driver_id=${loggedInUser.id}`
+          `http://localhost:3000/api/driver/rides?driver_id=${loggedInUser.id}`
         );
         if (response.ok) {
           const data = await response.json();

@@ -64,7 +64,7 @@ const DriverDashboardPage = () => {
       try {
         // Get driver's vehicle info
         const vehicleRes = await fetch(
-          `http://localhost:3000/driver/vehicle?driver_id=${loggedInUser.id}`
+          `http://localhost:3000/api/driver/vehicle?driver_id=${loggedInUser.id}`
         );
         if (vehicleRes.ok) {
           const vehicleData = await vehicleRes.json();
@@ -73,7 +73,7 @@ const DriverDashboardPage = () => {
 
         // Get pending ride requests for this driver
         const requestsRes = await fetch(
-          `http://localhost:3000/ride/req?driver_id=${loggedInUser.id}`
+          `http://localhost:3000/ws/ride/req?driver_id=${loggedInUser.id}`
         );
         if (requestsRes.ok) {
           const requestsData = await requestsRes.json();
