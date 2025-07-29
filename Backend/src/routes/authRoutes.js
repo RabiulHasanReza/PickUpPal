@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../../db");
 
-// Rider Signup
+// Rider Signup  : /api/auth/signup/rider
 router.post("/signup/rider", async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
@@ -51,7 +51,7 @@ router.post("/signup/rider", async (req, res) => {
   }
 });
 
-// Driver Signup
+// Driver Signup : /api/auth/signup/driver
 router.post("/signup/driver", async (req, res) => {
   try {
     const {
@@ -133,7 +133,7 @@ router.post("/signup/driver", async (req, res) => {
   }
 });
 
-// Rider Login
+// Rider Login : /api/auth/login/rider
 router.post("/login/rider", async (req, res) => {
   const { email, password } = req.body;
 
@@ -163,7 +163,7 @@ router.post("/login/rider", async (req, res) => {
   }
 });
 
-// Driver Login
+// Driver Login : /api/auth/login/driver
 router.post("/login/driver", async (req, res) => {
   const { email, password } = req.body;
 
