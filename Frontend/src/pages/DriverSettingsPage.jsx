@@ -1,34 +1,24 @@
 import { useState, useEffect } from "react";
 import DashboardHeader from "../components/DashBoardHeader";
 import Footer from "../components/Footer";
-import { FaUser, FaCar, FaLock, FaBell, FaCog } from "react-icons/fa";
+import { FaUser, FaCar, FaBell, FaCog } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 const DriverSettingsPage = () => {
   const [user, setUser] = useState(null);
-  const [vehicle, setVehicle] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [vehicleForm, setVehicleForm] = useState({
-    model: "",
-    make: "",
-    year: "",
-    color: "",
-    licensePlate: "",
-  });
-  const [notifications, setNotifications] = useState({
-    rideRequests: true,
-    rideUpdates: true,
-    earnings: true,
+    vehicle: {
+      model: "",
+      license_plate: "",
+      color: "",
+      capacity: 4
+    }
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [isEditingVehicle, setIsEditingVehicle] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
@@ -39,137 +29,126 @@ const DriverSettingsPage = () => {
       navigate("/login/driver");
       return;
     }
-    setUser(loggedInUser);
-    setFormData({
-      name: loggedInUser.name,
-      email: loggedInUser.email,
-      phone: loggedInUser.phone || "",
-      password: "",
-      confirmPassword: "",
-    });
 
-    // Fetch driver data
-    const fetchData = async () => {
+    const fetchDriverSettings = async () => {
       try {
-        // Fetch vehicle info
-        const vehicleRes = await fetch(
-          `http://localhost:3000/api/driver/vehicle?driver_id=${loggedInUser.id}`
-        );
-        if (vehicleRes.ok) {
-          const vehicleData = await vehicleRes.json();
-          setVehicle(vehicleData);
-          setVehicleForm({
-            model: vehicleData.model || "",
-            make: vehicleData.make || "",
-            year: vehicleData.year || "",
-            color: vehicleData.color || "",
-            licensePlate: vehicleData.license_plate || "",
-          });
-        }
-
-        // Fetch settings
-        const settingsRes = await fetch(
+        const response = await fetch(
           `http://localhost:3000/api/driver/settings?driver_id=${loggedInUser.id}`
         );
-        if (settingsRes.ok) {
-          const settingsData = await settingsRes.json();
-          setNotifications(settingsData.notifications || notifications);
+        
+        if (response.ok) {
+          const data = await response.json();
+          const profile = data.profile;
+          
+          setUser(loggedInUser);
+          setFormData({
+            name: profile.name,
+            email: profile.email,
+            phone: profile.phone || "",
+            vehicle: {
+              model: profile.vehicle?.model || "",
+              license_plate: profile.vehicle?.license_plate || "",
+              color: profile.vehicle?.color || "",
+              capacity: profile.vehicle?.capacity || 4
+            }
+          });
+        } else {
+          throw new Error("Failed to fetch driver settings");
         }
       } catch (error) {
-        console.error("Failed to fetch data:", error);
+        console.error("Error fetching driver settings:", error);
+        setError("Failed to load driver settings. Please try again.");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchData();
+    fetchDriverSettings();
   }, [navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleVehicleInputChange = (e) => {
     const { name, value } = e.target;
-    setVehicleForm((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      vehicle: {
+        ...prev.vehicle,
+        [name]: value
+      }
+    }));
   };
 
-  const handleNotificationChange = (e) => {
-    const { name, checked } = e.target;
-    setNotifications((prev) => ({ ...prev, [name]: checked }));
-  };
-
-  const handleProfileSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    if (formData.password && formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
     try {
       const response = await fetch(
-        `http://localhost:3000/api/driver/${user.id}/update`,
+        `http://localhost:3000/api/driver/settings`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            ...formData,
-            notifications,
+            driver_id: user.id,
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            vehicle: formData.vehicle
           }),
         }
       );
 
       if (response.ok) {
-        const updatedUser = await response.json();
+        const updatedData = await response.json();
+        
+        // Update local storage
+        const updatedUser = {
+          ...user,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone
+        };
         localStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
+        
         setUser(updatedUser);
         setSuccess("Profile updated successfully");
         setIsEditingProfile(false);
       } else {
-        setError("Failed to update profile");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update profile");
       }
     } catch (error) {
       console.error("Update error:", error);
-      setError("Network error. Please try again.");
+      setError(error.message || "Network error. Please try again.");
     }
   };
 
-  const handleVehicleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    try {
-      const response = await fetch(
-        `http://localhost:3000/api/driver/vehicle/${user.id}/update`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(vehicleForm),
-        }
-      );
-
-      if (response.ok) {
-        const updatedVehicle = await response.json();
-        setVehicle(updatedVehicle);
-        setSuccess("Vehicle information updated successfully");
-        setIsEditingVehicle(false);
-      } else {
-        setError("Failed to update vehicle information");
-      }
-    } catch (error) {
-      console.error("Update error:", error);
-      setError("Network error. Please try again.");
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <DashboardHeader />
+        <main className="flex-grow bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-300">
+              Loading settings...
+            </p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -190,334 +169,224 @@ const DriverSettingsPage = () => {
               </button>
             </div>
 
-            {isLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-                <p className="mt-4 text-gray-600 dark:text-gray-300">
-                  Loading settings...
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-8">
-                {/* Profile Section */}
-                <section>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
-                      <FaUser className="mr-2" />
-                      Profile Information
-                    </h2>
-                    {!isEditingProfile ? (
-                      <button
-                        onClick={() => setIsEditingProfile(true)}
-                        className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
-                      >
-                        Edit
-                      </button>
-                    ) : (
-                      <div className="space-x-2">
-                        <button
-                          onClick={() => setIsEditingProfile(false)}
-                          className="px-3 py-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleProfileSubmit}
-                          className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
-                        >
-                          Save
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {error && (
-                    <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-lg">
-                      {error}
-                    </div>
-                  )}
-                  {success && (
-                    <div className="mb-4 p-3 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 rounded-lg">
-                      {success}
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
-                        Full Name
-                      </label>
-                      {isEditingProfile ? (
-                        <input
-                          type="text"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                          required
-                        />
-                      ) : (
-                        <p className="text-gray-800 dark:text-white">
-                          {user.name}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
-                        Email
-                      </label>
-                      {isEditingProfile ? (
-                        <input
-                          type="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                          required
-                        />
-                      ) : (
-                        <p className="text-gray-800 dark:text-white">
-                          {user.email}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
-                        Phone Number
-                      </label>
-                      {isEditingProfile ? (
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                        />
-                      ) : (
-                        <p className="text-gray-800 dark:text-white">
-                          {user.phone || "Not provided"}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {isEditingProfile && (
-                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
-                          New Password
-                        </label>
-                        <input
-                          type="password"
-                          name="password"
-                          value={formData.password}
-                          onChange={handleInputChange}
-                          placeholder="Leave blank to keep current"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
-                          Confirm Password
-                        </label>
-                        <input
-                          type="password"
-                          name="confirmPassword"
-                          value={formData.confirmPassword}
-                          onChange={handleInputChange}
-                          placeholder="Leave blank to keep current"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </section>
-
-                {/* Vehicle Section */}
-                <section>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
-                      <FaCar className="mr-2" />
-                      Vehicle Information
-                    </h2>
-                    {!isEditingVehicle ? (
-                      <button
-                        onClick={() => setIsEditingVehicle(true)}
-                        className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
-                      >
-                        Edit
-                      </button>
-                    ) : (
-                      <div className="space-x-2">
-                        <button
-                          onClick={() => setIsEditingVehicle(false)}
-                          className="px-3 py-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleVehicleSubmit}
-                          className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
-                        >
-                          Save
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
-                        Make
-                      </label>
-                      {isEditingVehicle ? (
-                        <input
-                          type="text"
-                          name="make"
-                          value={vehicleForm.make}
-                          onChange={handleVehicleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                        />
-                      ) : (
-                        <p className="text-gray-800 dark:text-white">
-                          {vehicle?.make || "Not provided"}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
-                        Model
-                      </label>
-                      {isEditingVehicle ? (
-                        <input
-                          type="text"
-                          name="model"
-                          value={vehicleForm.model}
-                          onChange={handleVehicleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                        />
-                      ) : (
-                        <p className="text-gray-800 dark:text-white">
-                          {vehicle?.model || "Not provided"}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
-                        Year
-                      </label>
-                      {isEditingVehicle ? (
-                        <input
-                          type="text"
-                          name="year"
-                          value={vehicleForm.year}
-                          onChange={handleVehicleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                        />
-                      ) : (
-                        <p className="text-gray-800 dark:text-white">
-                          {vehicle?.year || "Not provided"}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
-                        Color
-                      </label>
-                      {isEditingVehicle ? (
-                        <input
-                          type="text"
-                          name="color"
-                          value={vehicleForm.color}
-                          onChange={handleVehicleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                        />
-                      ) : (
-                        <p className="text-gray-800 dark:text-white">
-                          {vehicle?.color || "Not provided"}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
-                        License Plate
-                      </label>
-                      {isEditingVehicle ? (
-                        <input
-                          type="text"
-                          name="licensePlate"
-                          value={vehicleForm.licensePlate}
-                          onChange={handleVehicleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                        />
-                      ) : (
-                        <p className="text-gray-800 dark:text-white">
-                          {vehicle?.license_plate || "Not provided"}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </section>
-
-                {/* Notifications Section */}
-                <section>
-                  <h2 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center mb-4">
-                    <FaBell className="mr-2" />
-                    Notifications
-                  </h2>
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="rideRequests"
-                        name="rideRequests"
-                        checked={notifications.rideRequests}
-                        onChange={handleNotificationChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
-                      />
-                      <label
-                        htmlFor="rideRequests"
-                        className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
-                      >
-                        New ride requests
-                      </label>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="rideUpdates"
-                        name="rideUpdates"
-                        checked={notifications.rideUpdates}
-                        onChange={handleNotificationChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
-                      />
-                      <label
-                        htmlFor="rideUpdates"
-                        className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
-                      >
-                        Ride updates and status changes
-                      </label>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="earnings"
-                        name="earnings"
-                        checked={notifications.earnings}
-                        onChange={handleNotificationChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
-                      />
-                      <label
-                        htmlFor="earnings"
-                        className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
-                      >
-                        Earnings updates
-                      </label>
-                    </div>
-                  </div>
-                </section>
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-lg">
+                {error}
               </div>
             )}
+            {success && (
+              <div className="mb-4 p-3 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 rounded-lg">
+                {success}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit}>
+              {/* Profile Section */}
+              <section className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
+                    <FaUser className="mr-2" />
+                    Profile Information
+                  </h2>
+                  {!isEditingProfile ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingProfile(true)}
+                      className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                    >
+                      Edit
+                    </button>
+                  ) : (
+                    <div className="space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingProfile(false)}
+                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
+                      Full Name
+                    </label>
+                    {isEditingProfile ? (
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                        required
+                      />
+                    ) : (
+                      <p className="text-gray-800 dark:text-white">
+                        {formData.name}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
+                      Email
+                    </label>
+                    {isEditingProfile ? (
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                        required
+                      />
+                    ) : (
+                      <p className="text-gray-800 dark:text-white">
+                        {formData.email}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
+                      Phone Number
+                    </label>
+                    {isEditingProfile ? (
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                      />
+                    ) : (
+                      <p className="text-gray-800 dark:text-white">
+                        {formData.phone || "Not provided"}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              {/* Vehicle Section */}
+              <section className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
+                    <FaCar className="mr-2" />
+                    Vehicle Information
+                  </h2>
+                  {!isEditingProfile ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingProfile(true)}
+                      className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                    >
+                      Edit
+                    </button>
+                  ) : (
+                    <div className="space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingProfile(false)}
+                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
+                      Model
+                    </label>
+                    {isEditingProfile ? (
+                      <input
+                        type="text"
+                        name="model"
+                        value={formData.vehicle.model}
+                        onChange={handleVehicleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                      />
+                    ) : (
+                      <p className="text-gray-800 dark:text-white">
+                        {formData.vehicle.model || "Not provided"}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
+                      License Plate
+                    </label>
+                    {isEditingProfile ? (
+                      <input
+                        type="text"
+                        name="license_plate"
+                        value={formData.vehicle.license_plate}
+                        onChange={handleVehicleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                      />
+                    ) : (
+                      <p className="text-gray-800 dark:text-white">
+                        {formData.vehicle.license_plate || "Not provided"}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
+                      Color
+                    </label>
+                    {isEditingProfile ? (
+                      <input
+                        type="text"
+                        name="color"
+                        value={formData.vehicle.color}
+                        onChange={handleVehicleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                      />
+                    ) : (
+                      <p className="text-gray-800 dark:text-white">
+                        {formData.vehicle.color || "Not provided"}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
+                      Capacity
+                    </label>
+                    {isEditingProfile ? (
+                      <input
+                        type="number"
+                        name="capacity"
+                        value={formData.vehicle.capacity}
+                        onChange={handleVehicleInputChange}
+                        min="1"
+                        max="8"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                      />
+                    ) : (
+                      <p className="text-gray-800 dark:text-white">
+                        {formData.vehicle.capacity || "4"}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
+            </form>
           </div>
         </div>
       </main>

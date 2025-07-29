@@ -7,10 +7,10 @@ import { useNavigate } from "react-router-dom";
 const DriverEarningsPage = () => {
   const [user, setUser] = useState(null);
   const [earnings, setEarnings] = useState({
-    today: 0,
-    week: 0,
-    month: 0,
-    total: 0,
+    today_income: 0,
+    week_income: 0,
+    month_income: 0,
+    total_income: 0,
     history: [],
   });
   const [timeRange, setTimeRange] = useState("week");
@@ -28,11 +28,14 @@ const DriverEarningsPage = () => {
     const fetchEarnings = async () => {
       try {
         const response = await fetch(
-          `http://localhost:3000/api/driver/earnings?driver_id=${loggedInUser.id}&range=${timeRange}`
+          `http://localhost:3000/api/driver/earnings?driver_id=${loggedInUser.id}`
         );
         if (response.ok) {
           const data = await response.json();
-          setEarnings(data);
+          setEarnings({
+            ...data,
+            history: [] // Add empty history array since backend doesn't provide it yet
+          });
         }
       } catch (error) {
         console.error("Failed to fetch earnings:", error);
@@ -87,7 +90,7 @@ const DriverEarningsPage = () => {
                       Today
                     </h3>
                     <p className="text-2xl font-bold text-blue-800 dark:text-blue-100">
-                      {formatPrice(earnings.today)}
+                      {formatPrice(earnings.today_income)}
                     </p>
                   </div>
                   <div className="bg-green-50 dark:bg-green-900 p-4 rounded-lg">
@@ -95,7 +98,7 @@ const DriverEarningsPage = () => {
                       This Week
                     </h3>
                     <p className="text-2xl font-bold text-green-800 dark:text-green-100">
-                      {formatPrice(earnings.week)}
+                      {formatPrice(earnings.week_income)}
                     </p>
                   </div>
                   <div className="bg-purple-50 dark:bg-purple-900 p-4 rounded-lg">
@@ -103,7 +106,7 @@ const DriverEarningsPage = () => {
                       This Month
                     </h3>
                     <p className="text-2xl font-bold text-purple-800 dark:text-purple-100">
-                      {formatPrice(earnings.month)}
+                      {formatPrice(earnings.month_income)}
                     </p>
                   </div>
                   <div className="bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg">
@@ -111,7 +114,7 @@ const DriverEarningsPage = () => {
                       Total
                     </h3>
                     <p className="text-2xl font-bold text-yellow-800 dark:text-yellow-100">
-                      {formatPrice(earnings.total)}
+                      {formatPrice(earnings.total_income)}
                     </p>
                   </div>
                 </div>

@@ -20,11 +20,20 @@ const DriverDashboardPage = () => {
   const [isDark, setIsDark] = useState(false);
   const [rideRequests, setRideRequests] = useState([]);
   const [currentRide, setCurrentRide] = useState(null);
-  const [earnings, setEarnings] = useState({ today: 0, week: 0, month: 0 });
+  const [earnings, setEarnings] = useState({
+    today_income: 0,
+    week_income: 0,
+    month_income: 0,
+    total_income: 0,
+  });
   const [driverStatus, setDriverStatus] = useState("offline");
   const [isLoading, setIsLoading] = useState(true);
   const [vehicleInfo, setVehicleInfo] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [weeklyStats, setWeeklyStats] = useState({
+    completedRides: 0,
+    avgRating: 0,
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -92,22 +101,30 @@ const DriverDashboardPage = () => {
         }
 
         // Get driver status
-        const statusRes = await fetch(
-          `http://localhost:3000/driver/status?driver_id=${loggedInUser.id}`
+        const dashboardRes = await fetch(
+          `http://localhost:3000/api/driver/dashboard?driver_id=${loggedInUser.id}`
         );
-        if (statusRes.ok) {
-          const statusData = await statusRes.json();
-          setDriverStatus(statusData.status || "offline");
+        if (dashboardRes.ok) {
+          const dashboardData = await dashboardRes.json();
+          setWeeklyStats({
+            completedRides: dashboardData.total_completed_rides || 0,
+            avgRating: dashboardData.avg_rating || 0,
+          });
         }
 
         // Note: Earnings would need to be calculated in your backend
         // This is a placeholder - you'd need to implement this endpoint
         const earningsRes = await fetch(
-          `http://localhost:3000/driver/earnings?driver_id=${loggedInUser.id}`
+          `http://localhost:3000/api/driver/earnings?driver_id=${loggedInUser.id}`
         );
         if (earningsRes.ok) {
           const earningsData = await earningsRes.json();
-          setEarnings(earningsData);
+          setEarnings({
+            today_income: earningsData.today_income || 0,
+            week_income: earningsData.week_income || 0,
+            month_income: earningsData.month_income || 0,
+            total_income: earningsData.total_income || 0,
+          });
         }
       } catch (error) {
         console.error("Failed to fetch driver data:", error);
@@ -510,7 +527,7 @@ const DriverDashboardPage = () => {
                       Today
                     </span>
                     <span className="font-medium text-gray-800 dark:text-white">
-                      ${earnings.today.toFixed(2)}
+                      ${(earnings.today_income || 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -518,7 +535,7 @@ const DriverDashboardPage = () => {
                       This Week
                     </span>
                     <span className="font-medium text-gray-800 dark:text-white">
-                      ${earnings.week.toFixed(2)}
+                      ${(earnings.week_income || 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -526,7 +543,7 @@ const DriverDashboardPage = () => {
                       This Month
                     </span>
                     <span className="font-medium text-gray-800 dark:text-white">
-                      ${earnings.month.toFixed(2)}
+                      ${(earnings.month_income || 0).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -704,15 +721,7 @@ const DriverDashboardPage = () => {
                       Rides Completed
                     </span>
                     <span className="font-medium text-gray-800 dark:text-white">
-                      0
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">
-                      Hours Online
-                    </span>
-                    <span className="font-medium text-gray-800 dark:text-white">
-                      0
+                      {weeklyStats.completedRides}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -720,7 +729,9 @@ const DriverDashboardPage = () => {
                       Average Rating
                     </span>
                     <span className="font-medium text-gray-800 dark:text-white">
-                      Not rated yet
+                      {weeklyStats.avgRating
+                        ? weeklyStats.avgRating.toFixed(1)
+                        : "Not rated yet"}
                     </span>
                   </div>
                 </div>

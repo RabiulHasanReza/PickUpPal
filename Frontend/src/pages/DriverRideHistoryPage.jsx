@@ -21,11 +21,11 @@ const DriverRideHistoryPage = () => {
     const fetchRideHistory = async () => {
       try {
         const response = await fetch(
-          `http://localhost:3000/api/driver/rides?driver_id=${loggedInUser.id}`
+          `http://localhost:3000/api/driver/history?driver_id=${loggedInUser.id}`
         );
         if (response.ok) {
           const data = await response.json();
-          setRideHistory(data);
+          setRideHistory(data.rides); // Note: backend returns { rides: [...] }
         }
       } catch (error) {
         console.error("Failed to fetch ride history:", error);
@@ -82,10 +82,10 @@ const DriverRideHistoryPage = () => {
                       <div>
                         <h3 className="font-semibold text-lg text-gray-800 dark:text-white">
                           <FaCar className="inline mr-2 text-blue-500" />
-                          Ride #{ride.ride_id}
+                          {ride.rider_name ? `Ride with ${ride.rider_name}` : `Ride #${ride.ride_id}`}
                         </h3>
                         <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
-                          {formatDate(ride.req_time)}
+                          {formatDate(ride.start_time)}
                         </p>
                       </div>
                       <div className="text-right">
@@ -112,7 +112,7 @@ const DriverRideHistoryPage = () => {
                           From:
                         </p>
                         <p className="text-gray-800 dark:text-white">
-                          {ride.start_location}
+                          {ride.source}
                         </p>
                       </div>
                       <div>
@@ -120,14 +120,17 @@ const DriverRideHistoryPage = () => {
                           To:
                         </p>
                         <p className="text-gray-800 dark:text-white">
-                          {ride.end_location}
+                          {ride.destination}
                         </p>
                       </div>
                     </div>
-                    {ride.rider_id && (
+                    {ride.comment && (
                       <div className="mt-3">
                         <p className="text-gray-500 dark:text-gray-400 text-sm">
-                          Rider: #{ride.rider_id}
+                          Comment:
+                        </p>
+                        <p className="text-gray-800 dark:text-white">
+                          {ride.comment}
                         </p>
                       </div>
                     )}
