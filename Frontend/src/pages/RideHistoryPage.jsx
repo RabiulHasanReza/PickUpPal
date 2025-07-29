@@ -21,11 +21,13 @@ const RideHistoryPage = () => {
     const fetchRideHistory = async () => {
       try {
         const response = await fetch(
-          `http://localhost:3000/rides?rider_id=${loggedInUser.id}`
+          `http://localhost:3000/api/rider/history?rider_id=${loggedInUser.id}`
         );
         if (response.ok) {
           const data = await response.json();
-          setRideHistory(data);
+          setRideHistory(data.rides || []); // Access the 'rides' property from response
+        } else {
+          console.error("Failed to fetch ride history");
         }
       } catch (error) {
         console.error("Failed to fetch ride history:", error);
@@ -85,7 +87,7 @@ const RideHistoryPage = () => {
                           Ride #{ride.ride_id}
                         </h3>
                         <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
-                          {formatDate(ride.req_time)}
+                          {formatDate(ride.start_time)}
                         </p>
                       </div>
                       <div className="text-right">
@@ -112,7 +114,7 @@ const RideHistoryPage = () => {
                           From:
                         </p>
                         <p className="text-gray-800 dark:text-white">
-                          {ride.start_location}
+                          {ride.source}
                         </p>
                       </div>
                       <div>
@@ -120,14 +122,14 @@ const RideHistoryPage = () => {
                           To:
                         </p>
                         <p className="text-gray-800 dark:text-white">
-                          {ride.end_location}
+                          {ride.destination}
                         </p>
                       </div>
                     </div>
-                    {ride.driver_id && (
+                    {ride.driver_name && (
                       <div className="mt-3">
                         <p className="text-gray-500 dark:text-gray-400 text-sm">
-                          Driver: #{ride.driver_id}
+                          Driver: {ride.driver_name}
                         </p>
                       </div>
                     )}

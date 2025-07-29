@@ -57,7 +57,7 @@ router.get("/history", async (req, res) => {
         rt.rating,
         rt.comment
       FROM rides r
-      JOIN users u ON r.rider_id = u.id
+      JOIN users u ON r.driver_id = u.id
       LEFT JOIN ratings rt ON r.ride_id = rt.ride_id AND rt.role = 'rider'
       WHERE r.rider_id = $1 AND r.status = 'completed'
       ORDER BY r.start_time DESC

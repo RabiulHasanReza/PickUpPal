@@ -527,7 +527,7 @@ const DriverDashboardPage = () => {
                       Today
                     </span>
                     <span className="font-medium text-gray-800 dark:text-white">
-                      ${(earnings.today_income || 0).toFixed(2)}
+                      ৳{(earnings.today_income || 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -535,7 +535,7 @@ const DriverDashboardPage = () => {
                       This Week
                     </span>
                     <span className="font-medium text-gray-800 dark:text-white">
-                      ${(earnings.week_income || 0).toFixed(2)}
+                      ৳{(earnings.week_income || 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -543,7 +543,7 @@ const DriverDashboardPage = () => {
                       This Month
                     </span>
                     <span className="font-medium text-gray-800 dark:text-white">
-                      ${(earnings.month_income || 0).toFixed(2)}
+                      ৳{(earnings.month_income || 0).toFixed(2)}
                     </span>
                   </div>
                 </div>

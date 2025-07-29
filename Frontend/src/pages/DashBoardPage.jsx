@@ -82,7 +82,6 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const startInputRef = useRef();
   const endInputRef = useRef();
-  
 
   // Custom map icons
   const startIcon = new L.DivIcon({
@@ -126,7 +125,6 @@ const DashboardPage = () => {
       popupAnchor: [0, -28],
     }),
   };
-
   // Simulates driver coming to pickup
   // Simulates driver coming to pickup
   // Replace the existing simulateToPickup function in DashBoardPage.jsx with this:
@@ -242,11 +240,11 @@ const DashboardPage = () => {
     const fetchRideHistory = async () => {
       try {
         const response = await fetch(
-          `http://localhost:3000/rides?rider_id=${loggedInUser.id}`
+          `http://localhost:3000/api/rider/history?rider_id=${loggedInUser.id}`
         );
         if (response.ok) {
           const data = await response.json();
-          setRideHistory(data);
+          setRideHistory(data.rides || []);
         }
       } catch (error) {
         console.error("Failed to fetch ride history:", error);
@@ -986,10 +984,9 @@ const DashboardPage = () => {
                     </div>
 
                     <button
-
                       type="submit"
                       className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-300"
-                    onClick={() => navigate(0)}
+                      onClick={() => navigate(0)}
                     >
                       Submit Rating
                     </button>
@@ -1009,7 +1006,7 @@ const DashboardPage = () => {
                     Trip Fare:
                   </span>
                   <span className="font-bold text-lg text-blue-600 dark:text-blue-300">
-                    <p>${activeRide.fare.toFixed(2)}</p>
+                    <p>৳{activeRide.fare.toFixed(2)}</p>
                     {/* {((distance / 1000) * 1.5).toFixed(2)}{" "} */}
                     {/* Example fare calculation */}
                   </span>
@@ -1283,7 +1280,7 @@ const DashboardPage = () => {
                 View your ride history
               </p>
             </div>
-           
+
             <div
               onClick={() => navigate("/help")}
               className="bg-[#f0f4ff] dark:bg-[#5d7397] p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
@@ -1301,6 +1298,7 @@ const DashboardPage = () => {
           </div>
 
           {/* Recent Activity Section */}
+          {/* Recent Activity Section */}
           <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md mb-8">
             <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-4">
               Recent Activity
@@ -1317,11 +1315,17 @@ const DashboardPage = () => {
                     </div>
                     <div>
                       <p className="text-gray-800 dark:text-gray-100 text-sm font-medium">
-                        Ride {ride.ride_id} - {ride.status || "completed"}
+                        {ride.source} → {ride.destination}
                       </p>
                       <p className="text-gray-500 dark:text-gray-400 text-xs">
-                        {new Date(ride.req_time).toLocaleString()}
+                        {new Date(ride.start_time).toLocaleString()} • $
+                        {ride.fare?.toFixed(2) || "0.00"}
                       </p>
+                      {ride.driver_name && (
+                        <p className="text-gray-500 dark:text-gray-400 text-xs">
+                          Driver: {ride.driver_name}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1351,7 +1355,7 @@ const DashboardPage = () => {
                         <span className="font-medium">{vehicle.type}</span>
                       </div>
                       <span className="font-bold">
-                        ${vehicle.fare.toFixed(2)}
+                        ৳{vehicle.fare.toFixed(2)}
                       </span>
                     </button>
                   ))}
