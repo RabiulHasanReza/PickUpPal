@@ -120,7 +120,7 @@ const DriverEarningsPage = () => {
                 </div>
 
                 {/* Time Range Selector */}
-                <div className="flex items-center space-x-4">
+                {/* <div className="flex items-center space-x-4">
                   <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
                     <FaCalendarAlt className="mr-2" />
                     Earnings History
@@ -135,18 +135,18 @@ const DriverEarningsPage = () => {
                     <option value="month">This Month</option>
                     <option value="all">All Time</option>
                   </select>
-                </div>
+                </div> */}
 
                 {/* Earnings Chart (Placeholder) */}
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg h-64 flex items-center justify-center">
+                {/* <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg h-64 flex items-center justify-center">
                   <FaChartLine className="text-4xl text-gray-400 dark:text-gray-500" />
                   <p className="ml-3 text-gray-500 dark:text-gray-400">
                     Earnings chart would be displayed here
                   </p>
-                </div>
+                </div> */}
 
                 {/* Earnings History */}
-                <div>
+                {/* <div>
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
                     Recent Transactions
                   </h3>
@@ -207,7 +207,7 @@ const DriverEarningsPage = () => {
                       </p>
                     </div>
                   )}
-                </div>
+                </div> */}
               </div>
             )}
           </div>

@@ -1114,6 +1114,8 @@ const DashboardPage = () => {
                     } catch (error) {
                       console.error("Error accepting promo:", error);
                     }
+                    navigate(0);
+                    
                   }}
                   className="flex-1 bg-white text-blue-600 py-1 rounded text-sm font-medium"
                 >
@@ -1153,7 +1155,7 @@ const DashboardPage = () => {
           )}
 
           {/* Search Bar */}
-          {!activeRide && (
+          {/* {!activeRide && (
             <div className="max-w-3xl mx-auto mb-8">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -1168,7 +1170,7 @@ const DashboardPage = () => {
                 />
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Welcome Section with Ride Booking */}
           {!activeRide && (

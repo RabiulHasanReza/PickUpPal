@@ -6,7 +6,7 @@ const useWebSocket = () => {
 
   useEffect(() => {
     ws.current = new WebSocket("ws://127.0.0.1:3000/ws/ride");
-
+   // ws.current = new WebSocket("wss://8284ea582c7d.ngrok-free.app/ws/ride");
     ws.current.onopen = () => {
       console.log("WebSocket connected");
       setConnected(true);
