@@ -1114,6 +1114,7 @@ const DashboardPage = () => {
                     } catch (error) {
                       console.error("Error accepting promo:", error);
                     }
+                    nevigate(0);
                   }}
                   className="flex-1 bg-white text-blue-600 py-1 rounded text-sm font-medium"
                 >
@@ -1143,6 +1144,7 @@ const DashboardPage = () => {
                     } catch (error) {
                       console.error("Error declining promo:", error);
                     }
+                    nevigate(0);
                   }}
                   className="flex-1 bg-gray-200 text-gray-800 py-1 rounded text-sm font-medium"
                 >
