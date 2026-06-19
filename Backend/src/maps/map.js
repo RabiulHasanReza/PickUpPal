@@ -90,7 +90,7 @@ router.get("/geocode", async (req, res) => {
       {
         params: {
           q,
-          key: "bd9098dfeea14d13ac1812e4eb8ffe51",
+          key: process.env.MAP_API_KEY,  
           limit: 5,
           language: "en",
           no_annotations: 1,

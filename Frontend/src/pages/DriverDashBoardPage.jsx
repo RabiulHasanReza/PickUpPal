@@ -334,6 +334,9 @@ const DriverDashboardPage = () => {
       alert("Please enable location services to go online.");
       return;
     }
+    if (newStatus === "offline" ) {
+      navigate(0);
+    }
 
     try {
       const payload =

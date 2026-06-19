@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const pool = require('../../db');
+const pool = require('../models/db');
 
 // GET  /api/admin/riders
 router.get("/riders", async (req, res) => { 
@@ -59,7 +59,7 @@ router.get("/rides", async (req, res) => {
 });
 
 
-//GET /api/admin/messages
+// GET /api/admin/messages
 router.get("/messages", async (req, res) => {
     try {
         const result = await pool.query(

@@ -1,14 +1,180 @@
-1.SING Up as driver 
+# PickUpPal
 
-2.driver's rating in driverSettingPage
+A full-stack ride-sharing platform inspired by Uber. The system supports rider, driver, and admin workflows, real-time ride updates through WebSockets, location-based services using Leaflet maps, and a PostgreSQL-backed backend built with Express.js. It was for our Database Sessional Course CSE 216.
 
-3.In driverEarningPage and Driverdashboard we need his earning and time range
+## Features
 
-4.history for both rider and driver history and recentActivity  
+### Rider
+- User registration and login
+- Ride booking
+- Ride history
+- Payment management
+- Profile settings
 
-5.Drivers vehicle info in driver setting page and add fuctionality for update
+### Driver
+- Driver registration
+- Accept ride requests
+- Ride history
+- Earnings dashboard
+- Profile settings
 
-6.ar paitesina paile janabo ne
+### Admin
+- Admin dashboard
+- User and ride management
+
+### General
+- Real-time ride updates using WebSockets
+- Interactive maps using Leaflet
+- Responsive UI
+
+## Tech Stack
+
+### Frontend
+- React
+- Vite
+- React Router
+- Axios
+- Tailwind CSS
+- Leaflet
+- React Leaflet
+- WebSocket
+- Framer Motion
+
+### Backend
+- Node.js
+- Express.js
+- WebSocket
+
+### Database
+- PostgreSQL
+
+---
+
+## Project Structure
+
+```
+PickUpPal/
+├── frontend/
+│   ├── src/
+│   └── package.json
+│
+├── backend/
+│   ├── src/
+│   ├── database/
+│   │   └── schema.sql
+│   ├── .env.example
+│   └── package.json
+│
+└── README.md
+```
+
+---
+
+## Setup Instructions
+
+### 1. Clone Repository
+
+```bash
+git clone <repository-url>
+cd PickUpPal
+```
+
+### 2. Install Backend Dependencies
+
+```bash
+cd backend
+npm install
+```
+
+### 3. Install Frontend Dependencies
+
+```bash
+cd ../frontend
+npm install
+```
+
+### 4. Configure Environment Variables
+
+Create a `.env` file from `.env.example`.
+
+Backend:
+
+```bash
+copy .env.example .env
+```
+
+Update the database credentials inside `.env`.
+
+### 5. Create Database
+
+Create a PostgreSQL database:
+
+```sql
+CREATE DATABASE pickupal;
+```
+
+Run:
+
+```bash
+psql -U postgres -d pickupal -f database/schema.sql
+```
+
+
+### 6. Start Backend
+
+```bash
+cd backend
+npm start
+```
+
+### 7. Start Frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+---
+
+## Environment Variables
+
+Example:
+
+```env
+DB_HOST=
+DB_PORT=
+DB_NAME=
+DB_USER=
+DB_PASSWORD=
+
+JWT_SECRET=
+```
+
+---
+
+## Future Improvements
+
+* Docker support
+* CI/CD pipeline
+* Automated testing
+* Ride history analytics
+
+```
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16,7 +182,7 @@
 
 # Backend API Endpoints:
 
-add longitute and latitude while sending ride request for both picup and destination
+add longitude and latitude while sending ride request for both pickup and destination
 
 remove the arrival messege add a start trip status 
 

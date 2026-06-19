@@ -5,7 +5,7 @@ const {
   hasDriverSeenRider,
   notifyDriversSequentially,
   markDriverNotSeenRider,
-} = require("./notify");
+} = require("../notifications/notify");
 
 const drivers = new Map(); // driver_id -> { ws, cur_location, available }
 const indx = 10;
@@ -419,7 +419,7 @@ try {
                   message: `Thanks for rating! 🎉 You've received a promo code.`,
                   promo
                 }));
-              }, 20000); // 20 seconds
+              }, 5000); // 20 seconds
 
             } catch (error) {
               console.error("Error during rating or promo logic:", error);

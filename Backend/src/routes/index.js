@@ -5,7 +5,7 @@ const driverRoutes = require("./driverRoutes");
 const riderRoutes = require("./riderRoutes");
 const authRoutes = require("./authRoutes");
 const adminRoutes = require("./adminRoutes");
-const maps = require('./map');
+const maps = require('../maps/map');
 
 
 router.use("/driver", driverRoutes);

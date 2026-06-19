@@ -237,10 +237,10 @@ const DriverSignUpPage = () => {
                 onChange={handleChange}
                 className="w-full px-4 py-3 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="2">2</option>
+                <option value="1">1</option>
+                <option value="3">3</option>
                 <option value="4">4</option>
                 <option value="6">6</option>
-                <option value="8">8</option>
               </select>
             </div>
 

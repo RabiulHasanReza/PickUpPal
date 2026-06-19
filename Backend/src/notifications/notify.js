@@ -1,4 +1,4 @@
-const pool = require('../../db');
+const pool = require('../models/db');
 let wss = null;
 function setWss(server) { wss = server; }
 // This function will be called to notify drivers about new ride requests

@@ -237,7 +237,7 @@ const HelpPage = () => {
             </div>
 
             {/* Search Bar */}
-            <div className="mb-8">
+            {/* <div className="mb-8">
               <div className="relative">
                 <input
                   type="text"
@@ -248,7 +248,7 @@ const HelpPage = () => {
                   <FaQuestionCircle className="text-gray-400" />
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* FAQ Sections */}
             <div className="space-y-4 mb-12">

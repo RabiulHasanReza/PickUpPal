@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const pool = require('../../db');
+const pool = require('../models/db');
 
 
 // GET   /api/rider/dashboard?rider_id=101

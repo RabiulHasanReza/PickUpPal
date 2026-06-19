@@ -1,0 +1,18 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# environment
+.env
+**/.env
+
+# logs
+*.log
+
+# build outputs
+Frontend/dist
+Backend/dist
+
+# IDE
+.vscode/
+.idea/

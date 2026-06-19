@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../../db");
+const pool = require("../models/db");
 
 // Rider Signup  : /api/auth/signup/rider
 router.post("/signup/rider", async (req, res) => {
